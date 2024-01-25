@@ -3,7 +3,11 @@ package org.example;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.io.StreamTokenizer;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
+import java.util.TreeSet;
 import java.util.concurrent.atomic.AtomicInteger;
 
 // TODO: use hashing
@@ -59,9 +63,12 @@ public class Pdup {
     }
 
     //    public static int[] P = new int[]{'a', 0, 'a', 'b', 3, '$'};
-    public static int[] P = new int[]{0, 'b', 0, 'b', 4, 'b', 4, '$'};
+//    public static int[] P = new int[]{0, 'b', 0, 'b', 4, 'b', 4, '$'};
 //    public static int[] P = new int[]{'a', 'b', 'a', 'b', 'c'};
 //    public static int[] P = new int[]{'a', 'b', 'c', 'b', 'c', 'a', 'b', 'c', '$'};
+    // TODO: this gives an error
+//    public static int[] P = "abczzeeabcwwwabcqweqweabc$".chars().toArray();
+    public static int[] P = "abczzeeabcwwabcqweqweabc$".chars().toArray();
 //    public static int[] P = new int[]{0, 'b', 0, 1, 4, 'b', 2, '$'};
 
     public static Node root = new Node();
@@ -230,6 +237,100 @@ public class Pdup {
         return scan(g, i, j, splitPoint);
     }
 
+    public static int lc(TreeSet<Integer> pl) {
+        if (pl.isEmpty()) {
+            return -1;
+        }
+        if (pl.getFirst() == 0) {
+            return 0;
+        }
+
+        return P[pl.getFirst() - 1];
+    }
+
+    public static int start(Node v) {
+        return v.firstpos + v.arclen - v.plen;
+    }
+
+
+    public static List<TreeSet<Integer>> combine(
+            List<TreeSet<Integer>> cl1, List<TreeSet<Integer>> cl2,
+            int len, int t
+    ) {
+        List<TreeSet<Integer>> outputlist = new ArrayList<>();
+
+        if (len < t) {
+            return new ArrayList<>();
+        }
+
+        for (var pl1 : cl1) {
+            for (var pl2 : cl2) {
+                if (lc(pl1) != lc(pl2)) {
+                    for (var p1 : pl1) {
+                        for (var p2 : pl2) {
+                            System.out.println(p1 + " " + p2 + " " + len);
+                            System.out.print("\t");
+                            for (int i = p1; i < p1 + len; i++) {
+                                System.out.print((char) P[i]);
+                            }
+                            System.out.print("\n\t");
+                            for (int i = p2; i < p2 + len; i++) {
+                                System.out.print((char) P[i]);
+                            }
+                            System.out.println("\n");
+                        }
+                    }
+                }
+            }
+        }
+
+        var usedcl1 = new ArrayList<TreeSet<Integer>>();
+        var usedcl2 = new ArrayList<TreeSet<Integer>>();
+
+        for (var pl1 : cl1) {
+            for (var pl2 : cl2) {
+                if (lc(pl1) == lc(pl2)) {
+                    var newpl = new TreeSet<>(pl1);
+                    newpl.addAll(pl2);
+                    outputlist.add(newpl);
+
+                    usedcl1.add(pl1);
+                    usedcl2.add(pl2);
+                }
+            }
+        }
+
+        for (var pl1 : cl1) {
+            if (!usedcl1.contains(pl1)) {
+                outputlist.add(pl1);
+            }
+        }
+
+        for (var pl2 : cl2) {
+            if (!usedcl2.contains(pl2)) {
+                outputlist.add(pl2);
+            }
+        }
+
+        return outputlist;
+    }
+
+
+    public static List<TreeSet<Integer>> sdup(Node v, int len, int t) {
+        if (v.child == null) {
+            return new ArrayList<>(List.of(new TreeSet<>(List.of(start(v)))));
+        }
+
+        List<TreeSet<Integer>> cl = new ArrayList<>();
+        var s = v.child;
+        while (s != null) {
+            cl = combine(cl, sdup(s, len + s.arclen, t), len, t);
+            s = s.sibling;
+        }
+
+        return cl;
+    }
+
     public static void main(String[] args) {
         root.sl = root;
         var oldhd = root;
@@ -303,5 +404,7 @@ public class Pdup {
             oldchild = g;
         }
         System.out.println();
+
+        System.out.println(sdup(root, 0, 2));
     }
 }
