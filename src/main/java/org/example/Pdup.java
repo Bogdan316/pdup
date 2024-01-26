@@ -4,17 +4,24 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.StreamTokenizer;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.TreeSet;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 // TODO: use hashing
 // TODO: balanced tree
 // TODO: better solution than the atomic integer
+// TODO: lists should be sorted
 
 public class Pdup {
+    //    public static String S = "abczzeeabcwwwabcqweqweabc$";
+    //    public static String S = "abczzeeabcwwabcqweqweabc$";
+    //    public static String S = "qwewqwwe$";
+    //    public static String S = "abcbcabc$";
+    public static String S = "ubvbubv$";
+    //    public static String S = "xbyyxbx$";
+    public static int[] P = prev(S.toCharArray());
+    public static int[] A = rev(P);
+
     static class Node {
         public int firstpos = -1;
         public int plen = 0;
@@ -60,16 +67,21 @@ public class Pdup {
             }
             return "r";
         }
+
+        public void toGraphViz() {
+            var child = this.child;
+            System.out.println(hashCode() + "[label = \"" + psub() + "\"]");
+            while (child != null) {
+                System.out.println(hashCode() + "->" + child.hashCode());
+                child.toGraphViz();
+                child = child.sibling;
+            }
+            if (sl != null) {
+                System.out.println(hashCode() + "->" + sl.hashCode() + "[style = dotted]");
+            }
+        }
     }
 
-    //    public static int[] P = new int[]{'a', 0, 'a', 'b', 3, '$'};
-//    public static int[] P = new int[]{0, 'b', 0, 'b', 4, 'b', 4, '$'};
-//    public static int[] P = new int[]{'a', 'b', 'a', 'b', 'c'};
-//    public static int[] P = new int[]{'a', 'b', 'c', 'b', 'c', 'a', 'b', 'c', '$'};
-    // TODO: this gives an error
-//    public static int[] P = "abczzeeabcwwwabcqweqweabc$".chars().toArray();
-    public static int[] P = "abczzeeabcwwabcqweqweabc$".chars().toArray();
-//    public static int[] P = new int[]{0, 'b', 0, 1, 4, 'b', 2, '$'};
 
     public static Node root = new Node();
 
@@ -155,7 +167,7 @@ public class Pdup {
         if (s == 0) {
             return start;
         }
-        var w = findOutgoingEdge(start, i, 0);
+        var w = findOutgoingEdge(start, i, j);
         if (w == null) {
             return start;
         }
@@ -209,7 +221,7 @@ public class Pdup {
             return start;
         } else {
             int k = g.firstpos;
-            for (; k < g.plen; k++, j++) {
+            for (; k < g.firstpos + g.arclen; k++, j++) {
                 if (f(P[k], k) != f(P[i + j], j)) {
                     splitPoint.set(k);
                     return g;
@@ -224,11 +236,17 @@ public class Pdup {
             assert (off == 0);
             return scan(g, i, j, splitPoint);
         }
+        // subtract the path length so far, the path length to g
+        off -= g.plen - g.arclen;
         int k = g.firstpos + off;
-        if (k >= g.plen) {
-            return g;
+        // the path to g is fully scanned
+        if (k == g.firstpos + g.arclen) {
+            return scan(g, i, j, splitPoint);
         }
-        for (; k < g.plen; k++, j++) {
+
+        assert k < g.firstpos + g.arclen;
+
+        for (; k < g.firstpos + g.arclen; k++, j++) {
             if (f(P[k], k) != f(P[i + j], j)) {
                 splitPoint.set(k);
                 return g;
@@ -252,30 +270,56 @@ public class Pdup {
         return v.firstpos + v.arclen - v.plen;
     }
 
+    public static int[] rev(int[] prev) {
+        var rev = new int[prev.length];
+        for (int i = 0; i < prev.length; i++) {
+            if (Character.isAlphabetic(prev[i]) || prev[i] == '$') {
+                rev[i] = prev[i];
+            } else {
+                if (prev[i] != 0) {
+                    int p = prev[i];
+                    if (rev[i - p] == 0) {
+                        rev[i - p] = p;
+                    }
+                    rev[i] = 0;
+                }
+            }
+        }
 
-    public static List<TreeSet<Integer>> combine(
-            List<TreeSet<Integer>> cl1, List<TreeSet<Integer>> cl2,
-            int len, int t
-    ) {
-        List<TreeSet<Integer>> outputlist = new ArrayList<>();
+        return rev;
+    }
 
+    public static int lca(List<Integer> pl) {
+        if (pl.isEmpty()) {
+            return -1;
+        }
+        var first = pl.getFirst();
+        if (first == 0) {
+            return 0;
+        }
+
+        return A[first - 1];
+    }
+
+    public static List<List<Integer>> pcombine(List<List<Integer>> cl1, List<List<Integer>> cl2, int len, int t) {
+        var outputlist = new ArrayList<List<Integer>>();
         if (len < t) {
             return new ArrayList<>();
         }
 
         for (var pl1 : cl1) {
             for (var pl2 : cl2) {
-                if (lc(pl1) != lc(pl2)) {
+                if (f(lca(pl1), len + 1) != f(lca(pl2), len + 1)) {
                     for (var p1 : pl1) {
                         for (var p2 : pl2) {
                             System.out.println(p1 + " " + p2 + " " + len);
                             System.out.print("\t");
                             for (int i = p1; i < p1 + len; i++) {
-                                System.out.print((char) P[i]);
+                                System.out.print(S.charAt(i));
                             }
                             System.out.print("\n\t");
                             for (int i = p2; i < p2 + len; i++) {
-                                System.out.print((char) P[i]);
+                                System.out.print(S.charAt(i));
                             }
                             System.out.println("\n");
                         }
@@ -284,13 +328,13 @@ public class Pdup {
             }
         }
 
-        var usedcl1 = new ArrayList<TreeSet<Integer>>();
-        var usedcl2 = new ArrayList<TreeSet<Integer>>();
+        var usedcl1 = new ArrayList<List<Integer>>();
+        var usedcl2 = new ArrayList<List<Integer>>();
 
         for (var pl1 : cl1) {
             for (var pl2 : cl2) {
-                if (lc(pl1) == lc(pl2)) {
-                    var newpl = new TreeSet<>(pl1);
+                if (f(lca(pl1), len + 1) == f(lca(pl2), len + 1)) {
+                    var newpl = new ArrayList<>(pl1);
                     newpl.addAll(pl2);
                     outputlist.add(newpl);
 
@@ -315,16 +359,35 @@ public class Pdup {
         return outputlist;
     }
 
-
-    public static List<TreeSet<Integer>> sdup(Node v, int len, int t) {
-        if (v.child == null) {
-            return new ArrayList<>(List.of(new TreeSet<>(List.of(start(v)))));
+    public static List<List<Integer>> concatz(List<List<Integer>> cl, int len) {
+        var concat = new ArrayList<Integer>();
+        var toRemove = new ArrayList<List<Integer>>();
+        for (var pl : cl) {
+            if (f(lca(pl), len + 1) == 0) {
+                concat.addAll(pl);
+                toRemove.add(pl);
+            }
         }
 
-        List<TreeSet<Integer>> cl = new ArrayList<>();
+        for (var pl : toRemove) {
+            cl.remove(pl);
+        }
+        cl.add(concat);
+
+        return cl;
+    }
+
+    public static List<List<Integer>> pdup(Node v, int t) {
+        if (v.child == null) {
+            var tmp = new ArrayList<List<Integer>>();
+            tmp.add(new ArrayList<>(List.of(start(v))));
+            return tmp;
+        }
+
+        List<List<Integer>> cl = new ArrayList<>();
         var s = v.child;
         while (s != null) {
-            cl = combine(cl, sdup(s, len + s.arclen, t), len, t);
+            cl = pcombine(cl, concatz(pdup(s, t), v.plen), v.plen, t);
             s = s.sibling;
         }
 
@@ -354,7 +417,8 @@ public class Pdup {
             if (oldhd == root) {
                 g = scan(root, i, 0, k);
             } else {
-                g = scan(oldhd.sl, i, oldhd.plen - 1, oldhd.plen - 1, k);
+                int off = oldhd.plen - 1;
+                g = scan(oldhd.sl, i, off, off, k);
             }
 
             // phase 3
@@ -403,8 +467,7 @@ public class Pdup {
             oldhd = newhd;
             oldchild = g;
         }
-        System.out.println();
 
-        System.out.println(sdup(root, 0, 2));
+        System.out.println(pdup(root, 1));
     }
 }
