@@ -1,9 +1,7 @@
 package org.example;
 
 import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 
-import java.io.StreamTokenizer;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -19,68 +17,8 @@ public class Pdup {
     //    public static String S = "abcbcabc$";
     public static String S = "ubvbubv$";
     //    public static String S = "xbyyxbx$";
-    public static int[] P = prev(S.toCharArray());
-    public static int[] A = rev(P);
-
-    static class Node {
-        public int firstpos = -1;
-        public int plen = 0;
-        public int arclen = 0;
-        public int i = -1;
-        public @Nullable Node parent = null;
-        public @Nullable Node sl = null;
-
-        public @Nullable Node child = null;
-
-        public @Nullable Node sibling = null;
-        public @Nullable Node min = null;
-
-        public String psub() {
-            if (arclen >= 0 && firstpos >= 0 && plen >= 0) {
-                String s = "";
-                for (int i = firstpos, k = plen - arclen; k < plen; i++, k++) {
-                    int b = f(P[i], k);
-                    if (b >= 'a' && b <= 'z' || b == '$') {
-                        s += (char) b;
-                    } else {
-                        s += b;
-                    }
-                }
-
-                return s;
-            }
-
-            return "r";
-        }
-
-        @Override
-        public String toString() {
-            if (arclen >= 0 && firstpos >= 0 && plen >= 0) {
-                var s = psub();
-                String fullpath = s;
-                var crt = this.parent;
-                while (crt != null) {
-                    fullpath = crt.psub() + fullpath;
-                    crt = crt.parent;
-                }
-                return s + " fullpath: " + fullpath.substring(1);
-            }
-            return "r";
-        }
-
-        public void toGraphViz() {
-            var child = this.child;
-            System.out.println(hashCode() + "[label = \"" + psub() + "\"]");
-            while (child != null) {
-                System.out.println(hashCode() + "->" + child.hashCode());
-                child.toGraphViz();
-                child = child.sibling;
-            }
-            if (sl != null) {
-                System.out.println(hashCode() + "->" + sl.hashCode() + "[style = dotted]");
-            }
-        }
-    }
+    public static int[] P;
+    public static int[] A;
 
 
     public static Node root = new Node();
@@ -105,8 +43,28 @@ public class Pdup {
         return res;
     }
 
+    public static int[] prev(List<Integer> chr) {
+        var res = new int[chr.size()];
+        var occur = new int[Lexer.idx];
+        Arrays.fill(occur, -1);
+
+        for (int i = 0; i < chr.size(); i++) {
+            if (chr.get(i) >= 0) {
+                int idx = chr.get(i);
+                int crtOccur = occur[idx];
+
+                res[i] = crtOccur < 0 ? 0 : i - crtOccur;
+                occur[idx] = i;
+            } else {
+                res[i] = chr.get(i);
+            }
+        }
+
+        return res;
+    }
+
     public static int f(int b, int j) {
-        if (b >= 'a' && b <= 'z' || b == '$') {
+        if (b < 0) {
             return b;
         }
         if (b > j) {
@@ -244,7 +202,9 @@ public class Pdup {
             return scan(g, i, j, splitPoint);
         }
 
-        assert k < g.firstpos + g.arclen;
+        if (k > g.firstpos + g.arclen) {
+            throw new RuntimeException();
+        }
 
         for (; k < g.firstpos + g.arclen; k++, j++) {
             if (f(P[k], k) != f(P[i + j], j)) {
@@ -255,17 +215,6 @@ public class Pdup {
         return scan(g, i, j, splitPoint);
     }
 
-    public static int lc(TreeSet<Integer> pl) {
-        if (pl.isEmpty()) {
-            return -1;
-        }
-        if (pl.getFirst() == 0) {
-            return 0;
-        }
-
-        return P[pl.getFirst() - 1];
-    }
-
     public static int start(Node v) {
         return v.firstpos + v.arclen - v.plen;
     }
@@ -273,7 +222,7 @@ public class Pdup {
     public static int[] rev(int[] prev) {
         var rev = new int[prev.length];
         for (int i = 0; i < prev.length; i++) {
-            if (Character.isAlphabetic(prev[i]) || prev[i] == '$') {
+            if (prev[i] < 0) {
                 rev[i] = prev[i];
             } else {
                 if (prev[i] != 0) {
@@ -315,11 +264,29 @@ public class Pdup {
                             System.out.println(p1 + " " + p2 + " " + len);
                             System.out.print("\t");
                             for (int i = p1; i < p1 + len; i++) {
-                                System.out.print(S.charAt(i));
+                                var b = Lexer.S.get(i);
+                                if (b < 0) {
+                                    System.out.print(Tokens.values()[-b] + " ");
+                                } else {
+                                    var idx = Lexer.S.get(i);
+                                    var id = Lexer.identifiers.entrySet().stream()
+                                            .filter(e -> e.getValue().equals(idx))
+                                            .findFirst().get().getKey();
+                                    System.out.print(id + " ");
+                                }
                             }
                             System.out.print("\n\t");
                             for (int i = p2; i < p2 + len; i++) {
-                                System.out.print(S.charAt(i));
+                                var b = Lexer.S.get(i);
+                                if (b < 0) {
+                                    System.out.print(Tokens.values()[-b] + " ");
+                                } else {
+                                    var idx = Lexer.S.get(i);
+                                    var id = Lexer.identifiers.entrySet().stream()
+                                            .filter(e -> e.getValue().equals(idx))
+                                            .findFirst().get().getKey();
+                                    System.out.print(id + " ");
+                                }
                             }
                             System.out.println("\n");
                         }
@@ -395,6 +362,14 @@ public class Pdup {
     }
 
     public static void main(String[] args) {
+        try {
+            var l = new Lexer();
+            l.parse();
+            P = prev(Lexer.S);
+            A = rev(P);
+        } catch (Exception ignored) {
+
+        }
         root.sl = root;
         var oldhd = root;
         Node oldchild = null;
@@ -409,7 +384,7 @@ public class Pdup {
                 // all oldhds will pass through this if and get a sl
                 assert (oldhd.parent.sl != null);
 
-                oldhd.sl = rescan(oldhd.parent.sl, i, 0, oldhd.plen - 1);
+                oldhd.sl = rescan(oldhd.parent.sl, i, oldhd.parent.sl.plen, oldhd.plen - 1);
             }
 
             // phase 2
@@ -468,6 +443,6 @@ public class Pdup {
             oldchild = g;
         }
 
-        System.out.println(pdup(root, 1));
+        System.out.println(pdup(root, 10));
     }
 }
