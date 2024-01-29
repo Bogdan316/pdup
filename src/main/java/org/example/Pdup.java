@@ -179,8 +179,9 @@ public class Pdup {
             return start;
         } else {
             int k = g.firstpos;
-            for (; k < g.firstpos + g.arclen; k++, j++) {
-                if (f(P[k], k) != f(P[i + j], j)) {
+            int p = g.plen - g.arclen;
+            for (; k < g.firstpos + g.arclen; k++, j++, p++) {
+                if (f(P[k], p) != f(P[i + j], j)) {
                     splitPoint.set(k);
                     return g;
                 }
@@ -194,20 +195,21 @@ public class Pdup {
             assert (off == 0);
             return scan(g, i, j, splitPoint);
         }
+        int p = off;
         // subtract the path length so far, the path length to g
         off -= g.plen - g.arclen;
         int k = g.firstpos + off;
-        // the path to g is fully scanned
+        // the path to g is fully scanned so far
         if (k == g.firstpos + g.arclen) {
             return scan(g, i, j, splitPoint);
         }
 
         if (k > g.firstpos + g.arclen) {
-            throw new RuntimeException();
+            throw new IllegalStateException();
         }
 
-        for (; k < g.firstpos + g.arclen; k++, j++) {
-            if (f(P[k], k) != f(P[i + j], j)) {
+        for (; k < g.firstpos + g.arclen; k++, j++, p++) {
+            if (f(P[k], p) != f(P[i + j], j)) {
                 splitPoint.set(k);
                 return g;
             }
@@ -272,6 +274,9 @@ public class Pdup {
                                     var id = Lexer.identifiers.entrySet().stream()
                                             .filter(e -> e.getValue().equals(idx))
                                             .findFirst().get().getKey();
+                                    if (id.contains(":")) {
+                                        id = id.split(":")[1];
+                                    }
                                     System.out.print(id + " ");
                                 }
                             }
@@ -285,6 +290,9 @@ public class Pdup {
                                     var id = Lexer.identifiers.entrySet().stream()
                                             .filter(e -> e.getValue().equals(idx))
                                             .findFirst().get().getKey();
+                                    if (id.contains(":")) {
+                                        id = id.split(":")[1];
+                                    }
                                     System.out.print(id + " ");
                                 }
                             }
@@ -361,6 +369,26 @@ public class Pdup {
         return cl;
     }
 
+    public static void logSuff(int i) {
+        var s = "";
+        for (int c = i; c < P.length; c++) {
+            var b = Lexer.S.get(c);
+            if (b < 0) {
+                s += Tokens.values()[-b] + " ";
+            } else {
+                var idx = Lexer.S.get(c);
+                var id = Lexer.identifiers.entrySet().stream()
+                        .filter(e -> e.getValue().equals(idx))
+                        .findFirst().get().getKey();
+                if (id.contains(":")) {
+                    id = id.split(":")[1];
+                }
+                s += id + " ";
+            }
+        }
+        System.out.println("Now inserting " + i + ": " + s);
+    }
+
     public static void main(String[] args) {
         try {
             var l = new Lexer();
@@ -368,7 +396,7 @@ public class Pdup {
             P = prev(Lexer.S);
             A = rev(P);
         } catch (Exception ignored) {
-
+            ignored.printStackTrace();
         }
         root.sl = root;
         var oldhd = root;
@@ -377,6 +405,7 @@ public class Pdup {
         Node g;
 
         for (int i = 0; i < P.length; i++) {
+            logSuff(i);
             // phase 1
             if (oldhd.sl == null) {
                 // only the root does not have a parent, but the root always has a sl
@@ -444,5 +473,6 @@ public class Pdup {
         }
 
         System.out.println(pdup(root, 10));
+//        root.toGraphViz();
     }
 }

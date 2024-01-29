@@ -21,9 +21,16 @@ public class Node {
             for (int i = firstpos, k = plen - arclen; k < plen; i++, k++) {
                 int b = Pdup.f(Pdup.P[i], k);
                 if (b < 0) {
-                    s += " " + Tokens.values()[-b];
+                    s += Tokens.values()[-b] + " ";
                 } else {
-                    s += b;
+                    var idx = Lexer.S.get(i);
+                    var id = Lexer.identifiers.entrySet().stream()
+                            .filter(e -> e.getValue().equals(idx))
+                            .findFirst().get().getKey();
+                    if (id.contains(":")) {
+                        id = id.split(":")[1];
+                    }
+                    s += id + " ";
                 }
             }
 

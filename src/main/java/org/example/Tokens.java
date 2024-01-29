@@ -16,5 +16,13 @@ public enum Tokens {
     IDENTIFIER,
     SEMICOLON,
     GREATER,
+    VOID,
+    DOT,
+    EQ,
+    LESS,
+    PLUS,
+    QUOTE,
+    FOR,
+    IMPORT,
     EOF
 }

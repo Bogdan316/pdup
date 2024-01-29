@@ -17,9 +17,11 @@ public class Lexer {
     public static final List<Integer> S = new ArrayList<>();
     public static final Map<String, Integer> identifiers = new HashMap<>();
     public static int idx = 0;
+    public static int ints = 0;
 
     public Lexer() throws FileNotFoundException {
         stream = new StreamTokenizer(new FileReader("F:\\pdup\\src\\main\\java\\org\\example\\Test.java"));
+        stream.wordChars('.', '.');
     }
 
     public void parse() throws IOException {
@@ -52,6 +54,18 @@ public class Lexer {
                             tok = RETURN;
                             break;
                         }
+                        case "void": {
+                            tok = VOID;
+                            break;
+                        }
+                        case "for": {
+                            tok = FOR;
+                            break;
+                        }
+                        case "import": {
+                            tok = IMPORT;
+                            break;
+                        }
                         default: {
                             tok = IDENTIFIER;
                         }
@@ -64,7 +78,7 @@ public class Lexer {
                     break;
                 }
                 case StreamTokenizer.TT_NUMBER: {
-                    System.out.println(t);
+                    S.add(identifiers.computeIfAbsent(ints++ + ":" + stream.nval, k -> idx++));
                     break;
                 }
                 default: {
@@ -96,6 +110,26 @@ public class Lexer {
                         }
                         case ',': {
                             tok = COMMA;
+                            break;
+                        }
+                        case '.': {
+                            tok = DOT;
+                            break;
+                        }
+                        case '=': {
+                            tok = EQ;
+                            break;
+                        }
+                        case '<': {
+                            tok = LESS;
+                            break;
+                        }
+                        case '+': {
+                            tok = PLUS;
+                            break;
+                        }
+                        case '"': {
+                            tok = QUOTE;
                             break;
                         }
                         default: {
