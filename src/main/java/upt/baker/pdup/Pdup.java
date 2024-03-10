@@ -180,26 +180,6 @@ public class Pdup<T extends PdupToken> {
         return scan(g, i, j, splitPoint);
     }
 
-//    public void logSuff(int i) {
-//        var s = new StringBuilder();
-//        for (int c = i; c < P.length; c++) {
-//            var b = Lexer.S.get(c);
-//            if (b < 0) {
-//                s.append(Tokens.values()[-b]).append(" ");
-//            } else {
-//                var idx = Lexer.S.get(c);
-//                var id = Lexer.identifiers.entrySet().stream()
-//                        .filter(e -> e.getValue().equals(idx))
-//                        .findFirst().get().getKey();
-//                if (id.contains(":")) {
-//                    id = id.split(":")[1];
-//                }
-//                s.append(id).append(" ");
-//            }
-//        }
-//        System.out.println("Now inserting " + i + ": " + s);
-//    }
-
     public void build() {
         var oldhd = root;
         Node oldchild = null;
@@ -207,10 +187,6 @@ public class Pdup<T extends PdupToken> {
         Node g;
 
         for (int i = 0; i < P.length; i++) {
-            if (i == 92) {
-                System.out.println();
-            }
-//            logSuff(i);
             // phase 1
             if (oldhd.getSl() == null) {
                 // only the root does not have a parent, but the root always has a sl
@@ -373,10 +349,6 @@ public class Pdup<T extends PdupToken> {
         @Nullable
         private Node sl = null;
         @Nullable
-        private Node child = null;
-        @Nullable
-        private Node sibling = null;
-        @Nullable
         private Node min = null;
         private final Map<Integer, Node> children = new HashMap<>();
 
@@ -402,62 +374,18 @@ public class Pdup<T extends PdupToken> {
             assert !children.containsKey(first);
             children.put(first, child);
 
-//
-//            if (this.getChild() == null) {
-//                this.setChild(child);
-//                return;
-//            }
-//
-//            var sib = this.getChild();
-//            while (sib.getSibling() != null) {
-//                sib = sib.getSibling();
-//            }
-//
-//            sib.setSibling(child);
         }
 
         public void removeChild(Node w) {
             children.remove(w.getFirstSymbol());
-//            if (getChild() == null) {
-//                return;
-//            }
-//
-//            if (getChild() == w) {
-//                setChild(getChild().getSibling());
-//                w.setSibling(null);
-//            } else {
-//                var u = getChild();
-//                while (u.getSibling() != null) {
-//                    if (u.getSibling() == w) {
-//                        u.setSibling(w.getSibling());
-//                        w.setSibling(null);
-//                        return;
-//                    }
-//                    u = u.getSibling();
-//                }
-//            }
         }
 
         public Node get0Edge() {
             return children.get(0);
-//            var n = getChild();
-//            while (n != null && f(P[n.getFirstPos()], n.getPathLen() - n.getArcLen()) != 0) {
-//                n = n.getSibling();
-//            }
-//
-//            assert foo == n;
-//
-//            return n;
         }
 
         public Node findOutgoingEdge(int i, int j) {
             return children.get(f(P[i + j], j));
-//            var n = getChild();
-//            while (n != null && f(P[n.getFirstPos()], n.getPathLen() - n.getArcLen()) != f(P[i + j], j)) {
-//                n = n.getSibling();
-//            }
-//
-//            return n;
         }
 
         public String psub() {
@@ -498,19 +426,6 @@ public class Pdup<T extends PdupToken> {
                 return s + " fullpath: " + fullpath.substring(1);
             }
             return "r";
-        }
-
-        public void toGraphViz() {
-//            var sib = this.getChild();
-//            System.out.println(hashCode() + "[label = \"" + psub() + "\"]");
-//            while (sib != null) {
-//                System.out.println(hashCode() + "->" + sib.hashCode());
-//                sib.toGraphViz();
-//                sib = sib.getSibling();
-//            }
-//            if (getSl() != null) {
-//                System.out.println(hashCode() + "->" + getSl().hashCode() + "[style = dotted]");
-//            }
         }
 
         public int getFirstPos() {
@@ -560,22 +475,6 @@ public class Pdup<T extends PdupToken> {
         public void setSl(@Nullable Node sl) {
             this.sl = sl;
         }
-
-//        public @Nullable Node getChild() {
-//            return child;
-//        }
-
-//        public void setChild(@Nullable Node child) {
-//            this.child = child;
-//        }
-
-//        public @Nullable Node getSibling() {
-//            return sibling;
-//        }
-
-//        public void setSibling(@Nullable Node sibling) {
-//            this.sibling = sibling;
-//        }
 
         public @Nullable Node getMin() {
             return min;
