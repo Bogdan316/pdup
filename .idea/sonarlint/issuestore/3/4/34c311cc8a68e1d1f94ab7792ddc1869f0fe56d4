@@ -1,0 +1,29 @@
+
+e
+java:S1128"JRemove this unused import 'com.intellij.codeInspection.ProblemDescriptor'.(ëß†ºþÿÿÿÿ
+W
+java:S1128"ARemove this unused import 'com.intellij.diff.DiffContentFactory'.(šâþ´
+i
+java:S1128"NRemove this unused import 'com.intellij.ide.projectView.impl.ProjectViewPane'.(·´ìÂúÿÿÿÿ
+W
+java:S1128"ARemove this unused import 'com.intellij.lang.CodeInsightActions'.(è®ˆ‰
+c
+java:S1128"MRemove this unused import 'com.intellij.openapi.actionSystem.CommonDataKeys'.(Þ š‘
+e
+java:S1128"JRemove this unused import 'com.intellij.openapi.fileEditor.FileNavigator'.(ž ¯³ûÿÿÿÿ
+j
+java:S1128"ORemove this unused import 'com.intellij.openapi.fileEditor.OpenFileDescriptor'.(„ê‚‹ûÿÿÿÿ
+c
+java:S1128"MRemove this unused import 'com.intellij.openapi.fileTypes.SyntaxHighlighter'.(†ÎêÎ
+X
+java:S1128"=Remove this unused import 'com.intellij.openapi.vfs.VfsUtil'.(½ßýÚýÿÿÿÿ
+a
+java:S1128"FRemove this unused import 'com.intellij.openapi.wm.ToolWindowManager'.(Ž‹³œýÿÿÿÿ
+U
+java:S1128":Remove this unused import 'com.intellij.psi.PsiJavaToken'.(ì£ þÿÿÿÿ
+M
+java:S1128"7Remove this unused import 'com.intellij.psi.PsiMethod'.(ù“Ê›
+V
+java:S1128";Remove this unused import 'com.intellij.psi.tree.TokenSet'.(Ïš§ÿÿÿÿÿ
+Y
+java:S1128">Remove this unused import 'com.intellij.psi.util.PsiTreeUtil'.(–¢Û¶þÿÿÿÿ
