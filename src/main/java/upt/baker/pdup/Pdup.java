@@ -1,7 +1,6 @@
 package upt.baker.pdup;
 
 
-// TODO: use hashing
 // TODO: balanced tree
 // TODO: better solution than the atomic integer
 // TODO: lists should be sorted
@@ -13,7 +12,6 @@ import org.jetbrains.annotations.Nullable;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
-import java.util.function.BiFunction;
 import java.util.function.Function;
 
 
@@ -22,8 +20,10 @@ public class Pdup<T extends PdupToken> {
     public final int[] A;
     public final Node root;
     private final Function<Integer, BiConsumer<Integer, Integer>> matchConsumer;
+    private final List<T> params;
 
     public Pdup(List<T> params, int maxIdx, Function<Integer, BiConsumer<Integer, Integer>> matchConsumer) {
+        this.params = params;
         this.matchConsumer = matchConsumer;
         P = prev(params, maxIdx);
         A = rev(P);
@@ -96,6 +96,10 @@ public class Pdup<T extends PdupToken> {
         if (s == 0) {
             return start;
         }
+        // TODO: bug(1) this needs to be checked if it is correct in phase 2
+        if (start.getPathLen() >= s) {
+            return start;
+        }
         var w = start.findOutgoingEdge(i, j);
         if (w == null) {
             return start;
@@ -159,6 +163,10 @@ public class Pdup<T extends PdupToken> {
             return scan(g, i, j, splitPoint);
         }
         int p = off;
+        // the start offset should be on the edge entering g
+        if (off < g.getPathLen() - g.getArcLen() || off > g.getPathLen()) {
+            throw new IllegalStateException();
+        }
         // subtract the path length so far, the path length to g
         off -= g.getPathLen() - g.getArcLen();
         int k = g.getFirstPos() + off;
@@ -187,6 +195,14 @@ public class Pdup<T extends PdupToken> {
         Node g;
 
         for (int i = 0; i < P.length; i++) {
+            System.out.print("Suffix " + i + " --> ");
+            var s = "";
+            for (int j = i; j < P.length; j++) {
+                var p = params.get(j).toString();
+                s += p.substring(0, Math.min(p.length(), 15)) + " ";
+            }
+            System.out.print(s);
+            System.out.println();
             // phase 1
             if (oldhd.getSl() == null) {
                 // only the root does not have a parent, but the root always has a sl
@@ -391,20 +407,8 @@ public class Pdup<T extends PdupToken> {
         public String psub() {
             if (getArcLen() >= 0 && getFirstPos() >= 0 && getPathLen() >= 0) {
                 String s = "";
-                for (int i = getFirstPos(), k = getPathLen() - getArcLen(); k < getPathLen(); i++, k++) {
-                    int b = f(P[i], k);
-                    if (b < 0) {
-//                        s += Tokens.values()[-b] + " ";
-                    } else {
-//                        var j = Lexer.S.get(i);
-//                        var id = Lexer.identifiers.entrySet().stream()
-//                                .filter(e -> e.getValue().equals(j))
-//                                .findFirst().get().getKey();
-//                        if (id.contains(":")) {
-//                            id = id.split(":")[1];
-//                        }
-//                        s += id + " ";
-                    }
+                for (int i = getFirstPos(); i < getFirstPos() + getArcLen(); i++) {
+                    s += params.get(i) + " ";
                 }
 
                 return s;
@@ -423,7 +427,7 @@ public class Pdup<T extends PdupToken> {
                     fullpath = crt.psub() + fullpath;
                     crt = crt.getParent();
                 }
-                return s + " fullpath: " + fullpath.substring(1);
+                return s + " ~FULL_PATH~: " + fullpath.substring(1);
             }
             return "r";
         }

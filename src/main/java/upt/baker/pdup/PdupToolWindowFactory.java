@@ -27,35 +27,39 @@ import java.awt.event.MouseEvent;
 import java.util.List;
 
 public class PdupToolWindowFactory implements ToolWindowFactory {
-    private final List<Dup> dups;
     private final Project project;
 
-    public PdupToolWindowFactory(Project project, List<Dup> dups) {
+    public PdupToolWindowFactory(Project project) {
         this.project = project;
-        this.dups = dups;
     }
 
     @Override
     public void createToolWindowContent(@NotNull Project project, @NotNull ToolWindow toolWindow) {
-        PdupToolWindowContent toolWindowContent = new PdupToolWindowContent(toolWindow);
+        PdupToolWindowContent toolWindowContent = new PdupToolWindowContent(project, toolWindow);
         Content content = ContentFactory.getInstance().createContent(toolWindowContent.getContentPanel(), "", false);
         toolWindow.getContentManager().addContent(content);
     }
 
-    private class PdupToolWindowContent {
+    public static class PdupToolWindowContent {
         private final OnePixelSplitter contentPanel = new OnePixelSplitter();
         private final ToolWindow toolWindow;
+        private final Project project;
+        private final List<Dup> dups;
 
-        public PdupToolWindowContent(ToolWindow toolWindow) {
+        public PdupToolWindowContent(Project project, ToolWindow toolWindow) {
+            this.project = project;
             this.toolWindow = toolWindow;
             contentPanel.setLayout(new BorderLayout(0, 20));
             contentPanel.setBorder(BorderFactory.createEmptyBorder(40, 0, 0, 0));
+            this.dups = new DupManager(project).getDups();
             createContentPanel();
         }
 
         private void createContentPanel() {
             contentPanel.setFirstComponent(getLeftPane());
-            contentPanel.setSecondComponent(getDiff(dups.get(0)));
+            if (!dups.isEmpty()) {
+                contentPanel.setSecondComponent(getDiff(dups.get(0)));
+            }
             contentPanel.setBorder(IdeBorderFactory.createEmptyBorder(JBUI.insetsTop(5)));
             contentPanel.setProportion(0.20f);
         }
@@ -69,21 +73,26 @@ public class PdupToolWindowFactory implements ToolWindowFactory {
 
                 @Override
                 public Class<?> getColumnClass(int columnIndex) {
-                    return VirtualFile.class;
+                    return Dup.class;
                 }
             };
             model.addColumn("a");
             model.addColumn("b");
             for (var d : dups) {
-                model.addRow(new Object[]{d.firstFile(), d.secondFile()});
+                model.addRow(new Object[]{d, d});
             }
 
             var table = new JBTable(model);
             var selModel = table.getSelectionModel();
-            table.setDefaultRenderer(VirtualFile.class, new DefaultTableCellRenderer() {
+            table.setDefaultRenderer(Dup.class, new DefaultTableCellRenderer() {
                 @Override
                 public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
-                    return super.getTableCellRendererComponent(table, ((VirtualFile) value).getName(), isSelected, hasFocus, row, column);
+                    var dup = (Dup) value;
+                    String fileName = dup.firstFile().getName();
+                    if (column == 1) {
+                        fileName = dup.secondFile().getName();
+                    }
+                    return super.getTableCellRendererComponent(table, fileName, isSelected, hasFocus, row, column);
                 }
             });
             table.addMouseListener(new MouseAdapter() {
@@ -93,11 +102,19 @@ public class PdupToolWindowFactory implements ToolWindowFactory {
                         var source = (JBTable) e.getSource();
                         int row = source.getSelectedRow();
                         int col = source.getSelectedColumn();
-                        var file = (VirtualFile) table.getValueAt(row, col);
+                        var dup = (Dup) table.getValueAt(row, col);
+                        VirtualFile file = dup.firstFile();
+                        int start = dup.firstStart();
+                        int end = dup.firstEnd();
+                        if (col == 1) {
+                            file = dup.secondFile();
+                            start = dup.secondStart();
+                            end = dup.secondEnd();
+                        }
                         SelectInEditorManager.getInstance(project).selectInEditor(
                                 file,
-                                0,
-                                10,
+                                start,
+                                end,
                                 false,
                                 false
                         );
