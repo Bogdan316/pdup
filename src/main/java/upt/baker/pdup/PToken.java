@@ -18,6 +18,9 @@ public class PToken extends PdupToken {
 
     @Override
     public String toString() {
-        return str;
+        var lim = Math.min(str.length(), 15);
+        var s = str.substring(0, lim) + " " + "-".repeat(16 - lim);
+//        return s + "> " + String.format("%3d", idx) + "|";
+        return (isId ? String.format("%-3s", "p") : String.format("%-3d", idx))+ "|";
     }
 }

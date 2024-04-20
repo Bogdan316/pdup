@@ -97,6 +97,7 @@ public class Pdup<T extends PdupToken> {
             return start;
         }
         // TODO: bug(1) this needs to be checked if it is correct in phase 2
+        //   this fixes issues for ConvertToClsSet.java and ConvertArscFile.java, starting path is already parcurs ...
         if (start.getPathLen() >= s) {
             return start;
         }
@@ -114,6 +115,7 @@ public class Pdup<T extends PdupToken> {
 
 
     public void update(int i, Node g, Node newhd, Node oldchild) {
+        // TODO: pos for bug 2, not sure if need to put 1 back, seems no
         if (g.getMin() == null || g.getMin().getPathLen() > 1 + newhd.getPathLen()) {
             newhd.setMin(null);
         } else {
@@ -130,8 +132,8 @@ public class Pdup<T extends PdupToken> {
                 }
             }
 
-            if (lst != null && !lst.isLeaf() && lst.getSl() == g) {
-                g.setMin(lst);
+            if (crt != null && !crt.isLeaf() && crt.getSl() == g) {
+                g.setMin(crt);
             } else {
                 g.setMin(null);
             }
@@ -195,14 +197,12 @@ public class Pdup<T extends PdupToken> {
         Node g;
 
         for (int i = 0; i < P.length; i++) {
-            System.out.print("Suffix " + i + " --> ");
-            var s = "";
-            for (int j = i; j < P.length; j++) {
-                var p = params.get(j).toString();
-                s += p.substring(0, Math.min(p.length(), 15)) + " ";
-            }
-            System.out.print(s);
-            System.out.println();
+//            var s = "Suffix " + i + " --> ";
+//            for (int j = i; j < P.length; j++) {
+//                var p = params.get(j).toString();
+//                s += p;
+//            }
+//            System.out.println(s);
             // phase 1
             if (oldhd.getSl() == null) {
                 // only the root does not have a parent, but the root always has a sl
@@ -240,14 +240,16 @@ public class Pdup<T extends PdupToken> {
                 g.setParent(newhd);
 
                 newhd.insertChild(g);
+
+                // TODO: bug 2, i == 999 (sl for oldhead is not the smallest caused by the fact that that sl's min is not the smallest)
+                //  -> paper suggests this should happen only after a split:
+                update(i, g, newhd, oldchild);
+                // oldhd.sl is updated in the beginning of the loop
+                if (newhd.getPathLen() < oldhd.getSl().getPathLen()) {
+                    oldhd.setSl(newhd);
+                }
             } else {
                 newhd = g;
-            }
-
-            update(i, g, newhd, oldchild);
-            // oldhd.sl is updated in the beginning of the loop
-            if (newhd.getPathLen() < oldhd.getSl().getPathLen()) {
-                oldhd.setSl(newhd);
             }
 
             // phase 4
@@ -262,6 +264,17 @@ public class Pdup<T extends PdupToken> {
             leaf.setPathLen(P.length - i);
             leaf.setArcLen(leaf.getPathLen() - newhd.getPathLen());
             newhd.insertChild(leaf);
+//            var tmp = "Result " + i + " --> " + leaf.toString().split("~FULL_PATH~: ")[1];
+//            System.out.println(tmp);
+//            var p1 = tmp.split(" --> ")[1].split("\\|");
+//            var p2 = s.split(" --> ")[1].split("\\|");
+            // TODO: naive check, do the real one
+//            for (int l = 0; l < p1.length; l++) {
+//                if (!p1[l].equals(p2[l])) {
+//                    throw new IllegalStateException("Not matching for suffix: " + i + " at pos: " + l);
+//                }
+//            }
+
 
             // phase 6
             oldhd = newhd;
@@ -352,7 +365,7 @@ public class Pdup<T extends PdupToken> {
     }
 
     public void pdup() {
-        pdup(root, 10);
+        pdup(root, 200);
     }
 
     public class Node {
@@ -408,7 +421,7 @@ public class Pdup<T extends PdupToken> {
             if (getArcLen() >= 0 && getFirstPos() >= 0 && getPathLen() >= 0) {
                 String s = "";
                 for (int i = getFirstPos(); i < getFirstPos() + getArcLen(); i++) {
-                    s += params.get(i) + " ";
+                    s += params.get(i);
                 }
 
                 return s;

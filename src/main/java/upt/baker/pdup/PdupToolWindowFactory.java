@@ -12,6 +12,7 @@ import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowFactory;
 import com.intellij.ui.IdeBorderFactory;
 import com.intellij.ui.OnePixelSplitter;
+import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.content.Content;
 import com.intellij.ui.content.ContentFactory;
 import com.intellij.ui.table.JBTable;
@@ -128,7 +129,7 @@ public class PdupToolWindowFactory implements ToolWindowFactory {
                 contentPanel.setSecondComponent(getDiff(dups.get(lsm.getMinSelectionIndex())));
             });
             table.setRowSelectionInterval(0, 0);
-            return table;
+            return new JBScrollPane(table);
         }
 
         private JComponent getDiff(Dup dup) {

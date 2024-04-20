@@ -91,19 +91,24 @@ public class DupManager {
         });
 
         var dups = new ArrayList<Dup>();
-        for (int i = 0; i < javaFiles.size(); i++) {
-            for (int j = i + 1; j < javaFiles.size(); j++) {
+        int start = 0;
+        int size = javaFiles.size();
+        for (int i = start; i < size; i++) {
+            for (int j = i + 1; j < size; j++) {
+//                System.out.println(i + "/" + j + "/" + size);
                 var firstFile = javaFiles.get(i);
                 var secondFile = javaFiles.get(j);
-                if (firstFile.getName().equals("ConvertToClsSet.java") && secondFile.getName().equals("ConvertArscFile.java")) {
-                    System.out.println();
-                } else {
-                    continue;
-                }
+//                System.out.println(firstFile + " / " + secondFile);
+//                if (secondFile.toString().equals("file://F:/jadx/jadx-gui/src/main/java/jadx/gui/device/debugger/SmaliDebugger.java")
+//                        && firstFile.toString().equals("file://F:/jadx/jadx-cli/src/main/java/jadx/cli/SingleClassMode.java")) {
+//                    System.out.println("found");
+//                } else {
+//                    continue;
+//                }
                 try {
                     var tokens = new ArrayList<PToken>();
                     getTokens(firstFile, tokens);
-//                    getTokens(secondFile, tokens);
+                    getTokens(secondFile, tokens);
                     tokens.add(new PToken(Integer.MIN_VALUE, false, -1, -1, null, "EOF"));
 
                     var t = new Pdup<>(tokens, ids, len -> (p1, p2) -> {
@@ -131,9 +136,12 @@ public class DupManager {
 
                 } catch (Exception e) {
                     e.printStackTrace();
+                    System.out.println(firstFile + " -> " + secondFile);
                     return dups;
                 }
             }
+//            System.out.println("NOT DONE");
+//            break;
         }
 
         return dups;
