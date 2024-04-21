@@ -6,6 +6,7 @@ import com.intellij.diff.DiffRequestPanel;
 import com.intellij.diff.contents.DocumentContent;
 import com.intellij.diff.requests.SimpleDiffRequest;
 import com.intellij.ide.SelectInEditorManager;
+import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.wm.ToolWindow;
@@ -134,8 +135,8 @@ public class PdupToolWindowFactory implements ToolWindowFactory {
 
         private JComponent getDiff(Dup dup) {
             DiffContentFactory contentFactory = DiffContentFactory.getInstance();
-            DocumentContent oldContent = contentFactory.create(dup.firstCode(), dup.firstFile());
-            DocumentContent newContent = contentFactory.create(dup.secondCode(), dup.secondFile());
+            DocumentContent oldContent = contentFactory.create(dup.getFirstCodeSegment(), dup.firstFile());
+            DocumentContent newContent = contentFactory.create(dup.getSecondCodeSegment(), dup.secondFile());
             SimpleDiffRequest request = new SimpleDiffRequest(null, oldContent, newContent, dup.firstFile().getName(), dup.secondFile().getName());
 
             DiffRequestPanel diffPanel = DiffManager.getInstance().createRequestPanel(project, toolWindow.getDisposable(), null);

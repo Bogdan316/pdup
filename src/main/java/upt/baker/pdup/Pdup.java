@@ -13,6 +13,8 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 
 public class Pdup<T extends PdupToken> {
@@ -288,6 +290,9 @@ public class Pdup<T extends PdupToken> {
             return new ArrayList<>();
         }
 
+        var usedcl1 = new ArrayList<List<Integer>>();
+        var usedcl2 = new ArrayList<List<Integer>>();
+
         for (var pl1 : cl1) {
             for (var pl2 : cl2) {
                 if (f(lca(pl1), len + 1) != f(lca(pl2), len + 1)) {
@@ -296,16 +301,7 @@ public class Pdup<T extends PdupToken> {
                             matchConsumer.apply(len).accept(p1, p2);
                         }
                     }
-                }
-            }
-        }
-
-        var usedcl1 = new ArrayList<List<Integer>>();
-        var usedcl2 = new ArrayList<List<Integer>>();
-
-        for (var pl1 : cl1) {
-            for (var pl2 : cl2) {
-                if (f(lca(pl1), len + 1) == f(lca(pl2), len + 1)) {
+                } else {
                     var newpl = new ArrayList<>(pl1);
                     newpl.addAll(pl2);
                     outputlist.add(newpl);
@@ -316,19 +312,11 @@ public class Pdup<T extends PdupToken> {
             }
         }
 
-        for (var pl1 : cl1) {
-            if (!usedcl1.contains(pl1)) {
-                outputlist.add(pl1);
-            }
-        }
+        cl1.removeAll(usedcl1);
+        cl2.removeAll(usedcl2);
 
-        for (var pl2 : cl2) {
-            if (!usedcl2.contains(pl2)) {
-                outputlist.add(pl2);
-            }
-        }
-
-        return outputlist;
+        return Stream.concat(outputlist.stream(), Stream.concat(cl1.stream(), cl2.stream()))
+                .collect(Collectors.toCollection(ArrayList::new));
     }
 
     public List<List<Integer>> concatz(List<List<Integer>> cl, int len) {

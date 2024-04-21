@@ -7,13 +7,11 @@ import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.roots.ProjectFileIndex;
-import com.intellij.openapi.util.TextRange;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.pom.java.LanguageLevel;
-import org.jetbrains.annotations.Nullable;
+import org.jetbrains.jps.model.java.JavaModuleSourceRootTypes;
 
 import java.io.IOException;
-import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -29,11 +27,12 @@ public class DupManager {
         this.project = project;
     }
 
-    private void getTokens(VirtualFile file, List<PToken> tokens) throws IOException {
+    private List<PToken> getTokens(VirtualFile file) {
+        var tokens = new ArrayList<PToken>();
         var lexer = new JavaLexer(LanguageLevel.HIGHEST);
         var doc = FileDocumentManager.getInstance().getDocument(file);
         if (doc == null) {
-            return;
+            return List.of();
         }
         lexer.start(doc.getText());
         while (lexer.getTokenType() != null) {
@@ -41,7 +40,8 @@ public class DupManager {
 
             // whitespace || end of line comment || doc comment
             if (idx == 132 || idx == 3 || idx == 544) {
-                System.out.print("");
+                lexer.advance();
+                continue;
             } else if (idx == 1) {
                 CharSequence id = lexer.getTokenSequence();
                 int i = identifiers.computeIfAbsent(id, cs -> ids++);
@@ -51,27 +51,19 @@ public class DupManager {
             }
             lexer.advance();
         }
+
+        return tokens;
     }
 
-    private @Nullable String getCodeSegment(PToken startToken, PToken endToken) {
+    private boolean isCodeSegmentInvalid(PToken startToken, PToken endToken) {
         if (!startToken.file.equals(endToken.file)) {
-            return null;
+            return true;
         }
 
         Document doc = FileDocumentManager.getInstance()
                 .getDocument(startToken.file);
 
-        if (doc == null) {
-            return null;
-        }
-        var txt = "";
-        try {
-            txt = doc.getText(new TextRange(startToken.start, endToken.end));
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        return txt;
+        return doc == null;
     }
 
     public List<Dup> getDups() {
@@ -82,8 +74,9 @@ public class DupManager {
         var javaFileType = lang.getAssociatedFileType();
 
         var javaFiles = new ArrayList<VirtualFile>();
-        ProjectFileIndex.getInstance(project).iterateContent(virtualFile -> {
-            if (virtualFile.getFileType() == javaFileType) {
+        var index = ProjectFileIndex.getInstance(project);
+        index.iterateContent(virtualFile -> {
+            if (virtualFile.getFileType() == javaFileType && !index.isUnderSourceRootOfType(virtualFile, JavaModuleSourceRootTypes.TESTS)) {
                 javaFiles.add(virtualFile);
             }
 
@@ -94,45 +87,38 @@ public class DupManager {
         int start = 0;
         int size = javaFiles.size();
         for (int i = start; i < size; i++) {
+            var firstFile = javaFiles.get(i);
+            var tokens = getTokens(firstFile);
             for (int j = i + 1; j < size; j++) {
-//                System.out.println(i + "/" + j + "/" + size);
-                var firstFile = javaFiles.get(i);
                 var secondFile = javaFiles.get(j);
-//                System.out.println(firstFile + " / " + secondFile);
-//                if (secondFile.toString().equals("file://F:/jadx/jadx-gui/src/main/java/jadx/gui/device/debugger/SmaliDebugger.java")
-//                        && firstFile.toString().equals("file://F:/jadx/jadx-cli/src/main/java/jadx/cli/SingleClassMode.java")) {
-//                    System.out.println("found");
-//                } else {
-//                    continue;
-//                }
                 try {
-                    var tokens = new ArrayList<PToken>();
-                    getTokens(firstFile, tokens);
-                    getTokens(secondFile, tokens);
-                    tokens.add(new PToken(Integer.MIN_VALUE, false, -1, -1, null, "EOF"));
+                    var theTokens = getTokens(secondFile);
+                    theTokens.addAll(tokens);
+                    theTokens.add(new PToken(Integer.MIN_VALUE, false, -1, -1, null, "EOF"));
 
-                    var t = new Pdup<>(tokens, ids, len -> (p1, p2) -> {
+                    var t = new Pdup<>(theTokens, ids, len -> (p1, p2) -> {
                         try {
-                            var firstStart = tokens.get(p1);
-                            var firstEnd = tokens.get(p1 + len - 1);
-                            String firstSegment = getCodeSegment(firstStart, firstEnd);
-                            var secondStart = tokens.get(p2);
-                            var secondEnd = tokens.get(p2 + len - 1);
-                            String secondSegment = getCodeSegment(secondStart, secondEnd);
-
-                            if (firstSegment == null || secondSegment == null) {
+                            var firstStart = theTokens.get(p1);
+                            var firstEnd = theTokens.get(p1 + len - 1);
+                            if (isCodeSegmentInvalid(firstStart, firstEnd)) {
                                 return;
                             }
 
-                            dups.add(new Dup(firstStart.file, firstSegment, firstStart.start, firstEnd.end,
-                                    secondStart.file, secondSegment, secondStart.start, secondEnd.end));
+                            var secondStart = theTokens.get(p2);
+                            var secondEnd = theTokens.get(p2 + len - 1);
+                            if (isCodeSegmentInvalid(secondStart, secondEnd)) {
+                                return;
+                            }
+
+                            dups.add(new Dup(firstStart.file, firstStart.start, firstEnd.end,
+                                    secondStart.file, secondStart.start, secondEnd.end));
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
                     });
                     t.build();
                     t.pdup();
-
+                    System.out.println(dups.size());
 
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -140,10 +126,10 @@ public class DupManager {
                     return dups;
                 }
             }
-//            System.out.println("NOT DONE");
-//            break;
         }
 
+        System.out.println("DONE");
+        System.exit(0);
         return dups;
     }
 }
