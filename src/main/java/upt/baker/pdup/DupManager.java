@@ -11,7 +11,6 @@ import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.pom.java.LanguageLevel;
 import org.jetbrains.jps.model.java.JavaModuleSourceRootTypes;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -129,7 +128,7 @@ public class DupManager {
         }
 
         System.out.println("DONE");
-        System.exit(0);
+        System.exit(0)/**/;
         return dups;
     }
 }

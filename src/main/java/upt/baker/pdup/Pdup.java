@@ -6,15 +6,17 @@ package upt.baker.pdup;
 // TODO: lists should be sorted
 
 
+import com.carrotsearch.hppc.IntObjectHashMap;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+import upt.baker.pdup.plist.Cell;
+import upt.baker.pdup.plist.Cons;
+import upt.baker.pdup.plist.PList;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 
 public class Pdup<T extends PdupToken> {
@@ -72,21 +74,15 @@ public class Pdup<T extends PdupToken> {
     }
 
     public int f(int b, int j) {
-        if (b < 0) {
+        if (b <= j) {
             return b;
-        }
-        if (b > j) {
+        } else {
             return 0;
         }
-
-        return b;
     }
 
-    public int lca(List<Integer> pl) {
-        if (pl.isEmpty()) {
-            return -1;
-        }
-        var first = pl.get(0);
+    public int lca(PList pl) {
+        var first = pl.getFirst();
         if (first == 0) {
             return 0;
         }
@@ -123,10 +119,8 @@ public class Pdup<T extends PdupToken> {
         } else {
             newhd.setMin(g.getMin());
             var crt = g.getMin();
-            Node lst = null;
             while (crt != null && crt.getPathLen() <= 1 + newhd.getPathLen()) {
                 crt.setSl(newhd);
-                lst = crt;
                 if (crt.getIdx() == i - 1) {
                     crt = oldchild;
                 } else {
@@ -284,14 +278,11 @@ public class Pdup<T extends PdupToken> {
         }
     }
 
-    public List<List<Integer>> pcombine(List<List<Integer>> cl1, List<List<Integer>> cl2, int len, int t) {
-        var outputlist = new ArrayList<List<Integer>>();
+    public List<PList> pcombine(List<PList> cl1, List<PList> cl2, int len, int t) {
+        var outputlist = new ArrayList<PList>();
         if (len < t) {
             return new ArrayList<>();
         }
-
-        var usedcl1 = new ArrayList<List<Integer>>();
-        var usedcl2 = new ArrayList<List<Integer>>();
 
         for (var pl1 : cl1) {
             for (var pl2 : cl2) {
@@ -302,51 +293,68 @@ public class Pdup<T extends PdupToken> {
                         }
                     }
                 } else {
-                    var newpl = new ArrayList<>(pl1);
-                    newpl.addAll(pl2);
-                    outputlist.add(newpl);
+                    outputlist.add(new Cons(pl1, pl2));
 
-                    usedcl1.add(pl1);
-                    usedcl2.add(pl2);
+                    pl1.mark();
+                    pl2.mark();
                 }
             }
         }
 
-        cl1.removeAll(usedcl1);
-        cl2.removeAll(usedcl2);
-
-        return Stream.concat(outputlist.stream(), Stream.concat(cl1.stream(), cl2.stream()))
-                .collect(Collectors.toCollection(ArrayList::new));
-    }
-
-    public List<List<Integer>> concatz(List<List<Integer>> cl, int len) {
-        var concat = new ArrayList<Integer>();
-        var toRemove = new ArrayList<List<Integer>>();
-        for (var pl : cl) {
-            if (f(lca(pl), len + 1) == 0) {
-                concat.addAll(pl);
-                toRemove.add(pl);
+        for (var pl1 : cl1) {
+            if (pl1.isMarked()) {
+                pl1.unmark();
+            } else {
+                outputlist.add(pl1);
             }
         }
 
-        for (var pl : toRemove) {
-            cl.remove(pl);
+        for (var pl2 : cl2) {
+            if (pl2.isMarked()) {
+                pl2.unmark();
+            } else {
+                outputlist.add(pl2);
+            }
         }
-        cl.add(concat);
 
-        return cl;
+        return outputlist;
     }
 
-    private List<List<Integer>> pdup(Node v, int t) {
+    public List<PList> concatz(List<PList> cl, int len) {
+        PList concat = null;
+        var out = new ArrayList<PList>();
+
+        for (int i = cl.size() - 1; i >= 0; i--) {
+            var pl = cl.remove(i);
+            if (f(lca(pl), len + 1) == 0) {
+                if (concat == null) {
+                    concat = pl;
+                } else {
+                    concat = new Cons(concat, pl);
+                }
+            } else {
+                out.add(pl);
+            }
+        }
+
+
+        if (concat != null) {
+            out.add(concat);
+        }
+
+        return out;
+    }
+
+    private List<PList> pdup(Node v, int t) {
         if (v.isLeaf()) {
-            var tmp = new ArrayList<List<Integer>>();
-            tmp.add(new ArrayList<>(List.of(v.start())));
+            var tmp = new ArrayList<PList>();
+            tmp.add(new Cell(v.start()));
             return tmp;
         }
 
-        List<List<Integer>> cl = new ArrayList<>();
+        List<PList> cl = new ArrayList<>();
         for (var s : v.getChildren()) {
-            cl = pcombine(cl, concatz(pdup(s, t), v.getPathLen()), v.getPathLen(), t);
+            cl = pcombine(cl, concatz(pdup(s.value, t), v.getPathLen()), v.getPathLen(), t);
         }
 
         return cl;
@@ -367,30 +375,28 @@ public class Pdup<T extends PdupToken> {
         private Node sl = null;
         @Nullable
         private Node min = null;
-        private final Map<Integer, Node> children = new HashMap<>();
+        private final IntObjectHashMap<Node> children = new IntObjectHashMap<>(16);
 
         public boolean isLeaf() {
             return children.isEmpty();
         }
 
-        public Collection<Node> getChildren() {
-            return children.values();
+        public IntObjectHashMap<Node> getChildren() {
+            return children;
         }
 
         public int start() {
-            return getFirstPos() + getArcLen() - getPathLen();
+            return firstPos + arcLen - pathLen;
         }
 
         private int getFirstSymbol() {
-            return f(P[getFirstPos()], getPathLen() - getArcLen());
+            return f(P[firstPos], pathLen - arcLen);
         }
 
         public void insertChild(Node child) {
             child.setParent(this);
             var first = child.getFirstSymbol();
-            assert !children.containsKey(first);
             children.put(first, child);
-
         }
 
         public void removeChild(Node w) {
