@@ -105,11 +105,11 @@ public class PdupToolWindowFactory implements ToolWindowFactory {
                         int row = source.getSelectedRow();
                         int col = source.getSelectedColumn();
                         var dup = (Dup) table.getValueAt(row, col);
-                        VirtualFile file = dup.firstFile();
+                        VirtualFile file = dup.firstVFile();
                         int start = dup.firstStart();
                         int end = dup.firstEnd();
                         if (col == 1) {
-                            file = dup.secondFile();
+                            file = dup.secondVFile();
                             start = dup.secondStart();
                             end = dup.secondEnd();
                         }
@@ -135,8 +135,8 @@ public class PdupToolWindowFactory implements ToolWindowFactory {
 
         private JComponent getDiff(Dup dup) {
             DiffContentFactory contentFactory = DiffContentFactory.getInstance();
-            DocumentContent oldContent = contentFactory.create(dup.getFirstCodeSegment(), dup.firstFile());
-            DocumentContent newContent = contentFactory.create(dup.getSecondCodeSegment(), dup.secondFile());
+            DocumentContent oldContent = contentFactory.create(dup.getFirstCodeSegment(), dup.firstVFile());
+            DocumentContent newContent = contentFactory.create(dup.getSecondCodeSegment(), dup.secondVFile());
             SimpleDiffRequest request = new SimpleDiffRequest(null, oldContent, newContent, dup.firstFile().getName(), dup.secondFile().getName());
 
             DiffRequestPanel diffPanel = DiffManager.getInstance().createRequestPanel(project, toolWindow.getDisposable(), null);

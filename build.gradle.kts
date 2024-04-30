@@ -18,7 +18,16 @@ intellij {
     type.set("IC") // Target IDE Platform
 
     plugins.set(listOf("com.intellij.java"))
+
 }
+
+idea {
+    module {
+        isDownloadJavadoc = true
+        isDownloadJavadoc = true
+    }
+}
+
 
 dependencies {
     implementation("com.carrotsearch:hppc:0.9.1")

@@ -25,20 +25,22 @@ public class Pdup<T extends PdupToken> {
     public final Node root;
     private final Function<Integer, BiConsumer<Integer, Integer>> matchConsumer;
     private final List<T> params;
+    private final int tokenLen;
 
-    public Pdup(List<T> params, int maxIdx, Function<Integer, BiConsumer<Integer, Integer>> matchConsumer) {
+    public Pdup(int tokenLen, List<T> params, Function<Integer, BiConsumer<Integer, Integer>> matchConsumer) {
+        this.tokenLen = tokenLen;
         this.params = params;
         this.matchConsumer = matchConsumer;
-        P = prev(params, maxIdx);
+        P = prev(params);
         A = rev(P);
 
         root = new Node();
         root.setSl(root);
     }
 
-    public int[] prev(List<T> params, int maxIdx) {
+    public int[] prev(List<T> params) {
         var res = new int[params.size()];
-        var occur = new int[maxIdx];
+        var occur = new int[params.size()];
         Arrays.fill(occur, -1);
 
         for (int i = 0; i < params.size(); i++) {
@@ -361,7 +363,7 @@ public class Pdup<T extends PdupToken> {
     }
 
     public void pdup() {
-        pdup(root, 200);
+        pdup(root, tokenLen);
     }
 
     public class Node {
