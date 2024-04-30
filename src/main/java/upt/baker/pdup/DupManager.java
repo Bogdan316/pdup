@@ -2,27 +2,19 @@ package upt.baker.pdup;
 
 import com.intellij.lang.Language;
 import com.intellij.lang.java.JavaLanguage;
-import com.intellij.lang.java.lexer.JavaLexer;
+import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.roots.ProjectFileIndex;
+import com.intellij.openapi.util.TextRange;
 import com.intellij.openapi.vfs.VirtualFile;
-import com.intellij.pom.java.LanguageLevel;
-import com.intellij.psi.JavaTokenType;
-import com.intellij.psi.TokenType;
-import com.intellij.psi.impl.source.tree.JavaDocElementType;
-import com.intellij.psi.search.EverythingGlobalScope;
-import com.intellij.psi.tree.IElementType;
-import com.intellij.psi.util.PsiUtilCore;
 import com.intellij.util.indexing.FileBasedIndex;
 import upt.baker.pdup.index.PdupFileIndex;
 import upt.baker.pdup.settings.PdupSettingsState;
 
-import java.lang.annotation.ElementType;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 public class DupManager {
     private final Project project;
@@ -32,6 +24,7 @@ public class DupManager {
         this.project = project;
         this.state = PdupSettingsState.getInstance().getState();
     }
+
 
     public List<Dup> getDups() {
         var fileIndex = FileBasedIndex.getInstance();
@@ -49,6 +42,9 @@ public class DupManager {
             }
             return true;
         });
+
+        var docManager = FileDocumentManager.getInstance();
+        var docCache = new HashMap<VirtualFile, Document>();
 
         var dups = new ArrayList<Dup>();
         int size = javaFiles.size();
@@ -68,8 +64,11 @@ public class DupManager {
                     }
                     int tokMid = theTokens.size();
                     theTokens.addAll(tokens);
-                    theTokens.add(new PdupToken(Integer.MIN_VALUE, -1));
+                    theTokens.add(new PdupToken(Integer.MIN_VALUE, -1, -1));
 
+                    // TODO: make tree clonable, keep the tree from the first file
+                    // TODO: this introduces duplicates
+                    // TODO: add listener to update index
                     var t = new Pdup<>(state.tokenLen, theTokens, len -> (p1, p2) -> {
                         try {
                             int end = p1 + len - 1;
@@ -77,19 +76,22 @@ public class DupManager {
                                 return;
                             }
                             var fstFile = p1 < tokMid ? secondFile : firstFile;
-                            var firstStart = theTokens.get(p1);
-                            var firstEnd = theTokens.get(end);
+                            var firstRange = new TextRange(theTokens.get(p1).startOffset, theTokens.get(end).endOffset);
 
                             end = p2 + len - 1;
                             if (!(p2 < tokMid && end < tokMid || p2 >= tokMid && end >= tokMid)) {
                                 return;
                             }
                             var sndFile = p2 < tokMid ? secondFile : firstFile;
-                            var secondStart = theTokens.get(p2);
-                            var secondEnd = theTokens.get(p2 + len - 1);
+                            var secondRange = new TextRange(theTokens.get(p2).startOffset, theTokens.get(end).endOffset);
 
-                            dups.add(new Dup(PsiUtilCore.getPsiFile(project, fstFile), firstStart.offset, firstEnd.offset,
-                                    PsiUtilCore.getPsiFile(project, sndFile), secondStart.offset, secondEnd.offset));
+                            var firstDoc = docCache.computeIfAbsent(fstFile, docManager::getDocument);
+                            var secondDoc = docCache.computeIfAbsent(sndFile, docManager::getDocument);
+
+                            var d = new Dup(firstDoc, firstRange, secondDoc, secondRange);
+                            if (d.firstSegLines() >= state.lines || d.secondSegLines() >= state.lines) {
+                                dups.add(d);
+                            }
                         } catch (Exception e) {
                             e.printStackTrace();
                         }
@@ -103,6 +105,7 @@ public class DupManager {
                     return dups;
                 }
             }
+            break;
         }
 
         System.out.println("DONE");

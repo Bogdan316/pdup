@@ -29,7 +29,6 @@ public class PdupDataIndexer extends SingleEntryIndexer<List<PdupToken>> {
         var stack = new ArrayDeque<PsiElement>();
         stack.push(element);
         var tokens = new ArrayList<PdupToken>();
-        var elements = new ArrayList<PsiElement>();
         while (!stack.isEmpty()) {
             var e = stack.pop();
             if (IGNORED.contains(e.getNode().getElementType())) {
@@ -44,11 +43,11 @@ public class PdupDataIndexer extends SingleEntryIndexer<List<PdupToken>> {
                     next = id;
                     id++;
                 }
-                tokens.add(new PdupToken(next, e.getTextOffset()));
-                elements.add(e);
+                int off = e.getTextOffset();
+                tokens.add(new PdupToken(next, off, off + e.getTextLength()));
             } else if (e instanceof PsiJavaToken token) {
-                tokens.add(new PdupToken(-token.getTokenType().getIndex(), e.getTextOffset()));
-                elements.add(e);
+                int off = e.getTextOffset();
+                tokens.add(new PdupToken(-token.getTokenType().getIndex(), off, off + e.getTextLength()));
             } else {
                 var ch = e.getChildren();
                 for (int i = ch.length - 1; i >= 0; i--) {

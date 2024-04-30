@@ -1,63 +1,57 @@
 package upt.baker.pdup;
 
+import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.util.TextRange;
-import com.intellij.openapi.vfs.VfsUtil;
 import com.intellij.openapi.vfs.VirtualFile;
-import com.intellij.openapi.vfs.VirtualFileManager;
-import com.intellij.psi.PsiFile;
-import com.intellij.psi.util.PsiUtil;
-import com.intellij.psi.util.PsiUtilCore;
+import com.intellij.util.DocumentUtil;
 
-public record Dup(PsiFile firstFile, int firstStart, int firstEnd, PsiFile secondFile, int secondStart,
-                  int secondEnd) {
-    @Override
-    public int firstStart() {
-        return PsiUtilCore.getElementAtOffset(firstFile, firstStart).getTextOffset();
+public record Dup(Document firstDoc, TextRange firstRange, Document secondDoc, TextRange secondRange) {
+
+    private int countLines(String text) {
+        if (text == null) {
+            return 0;
+        }
+        int lines = 0;
+        boolean onEmptyLine = true;
+        final char[] chars = text.toCharArray();
+        for (char aChar : chars) {
+            if (aChar == '\n' || aChar == '\r') {
+                if (!onEmptyLine) {
+                    lines++;
+                    onEmptyLine = true;
+                }
+            } else if (aChar != ' ' && aChar != '\t') {
+                onEmptyLine = false;
+            }
+        }
+        if (!onEmptyLine) {
+            lines++;
+        }
+        return lines;
     }
 
-    @Override
-    public int secondStart() {
-        return PsiUtilCore.getElementAtOffset(secondFile, secondStart).getTextOffset();
+    public VirtualFile firstFile() {
+        return FileDocumentManager.getInstance().getFile(firstDoc);
     }
 
-    @Override
-    public int firstEnd() {
-        var end = PsiUtilCore.getElementAtOffset(firstFile, firstEnd);
-        return end.getTextOffset() + end.getTextLength();
-    }
-
-    @Override
-    public int secondEnd() {
-        var end = PsiUtilCore.getElementAtOffset(secondFile, secondEnd);
-        return end.getTextOffset() + end.getTextLength();
-    }
-
-    public VirtualFile firstVFile() {
-        return firstFile.getVirtualFile();
-    }
-
-    public VirtualFile secondVFile() {
-        return secondFile.getVirtualFile();
+    public VirtualFile secondFile() {
+        return FileDocumentManager.getInstance().getFile(secondDoc);
     }
 
     public String getFirstCodeSegment() {
-        var docManger = FileDocumentManager.getInstance();
-        var doc = docManger.getDocument(firstFile.getVirtualFile());
-        if (doc == null) {
-            return "";
-        }
-
-        return doc.getText(new TextRange(firstStart(), firstEnd()));
+        return firstDoc.getText(firstRange);
     }
 
     public String getSecondCodeSegment() {
-        var docManger = FileDocumentManager.getInstance();
-        var doc = docManger.getDocument(secondFile.getVirtualFile());
-        if (doc == null) {
-            return "";
-        }
+        return secondDoc.getText(secondRange);
+    }
 
-        return doc.getText(new TextRange(secondStart(), secondEnd()));
+    public int firstSegLines() {
+        return countLines(getFirstCodeSegment());
+    }
+
+    public int secondSegLines() {
+        return countLines(getSecondCodeSegment());
     }
 }

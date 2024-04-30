@@ -6,7 +6,6 @@ import com.intellij.diff.DiffRequestPanel;
 import com.intellij.diff.contents.DocumentContent;
 import com.intellij.diff.requests.SimpleDiffRequest;
 import com.intellij.ide.SelectInEditorManager;
-import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.wm.ToolWindow;
@@ -105,18 +104,16 @@ public class PdupToolWindowFactory implements ToolWindowFactory {
                         int row = source.getSelectedRow();
                         int col = source.getSelectedColumn();
                         var dup = (Dup) table.getValueAt(row, col);
-                        VirtualFile file = dup.firstVFile();
-                        int start = dup.firstStart();
-                        int end = dup.firstEnd();
+                        VirtualFile file = dup.firstFile();
+                        var range = dup.firstRange();
                         if (col == 1) {
-                            file = dup.secondVFile();
-                            start = dup.secondStart();
-                            end = dup.secondEnd();
+                            file = dup.secondFile();
+                            range = dup.secondRange();
                         }
                         SelectInEditorManager.getInstance(project).selectInEditor(
                                 file,
-                                start,
-                                end,
+                                range.getStartOffset(),
+                                range.getEndOffset(),
                                 false,
                                 false
                         );
@@ -135,8 +132,8 @@ public class PdupToolWindowFactory implements ToolWindowFactory {
 
         private JComponent getDiff(Dup dup) {
             DiffContentFactory contentFactory = DiffContentFactory.getInstance();
-            DocumentContent oldContent = contentFactory.create(dup.getFirstCodeSegment(), dup.firstVFile());
-            DocumentContent newContent = contentFactory.create(dup.getSecondCodeSegment(), dup.secondVFile());
+            DocumentContent oldContent = contentFactory.create(dup.getFirstCodeSegment(), dup.firstFile());
+            DocumentContent newContent = contentFactory.create(dup.getSecondCodeSegment(), dup.secondFile());
             SimpleDiffRequest request = new SimpleDiffRequest(null, oldContent, newContent, dup.firstFile().getName(), dup.secondFile().getName());
 
             DiffRequestPanel diffPanel = DiffManager.getInstance().createRequestPanel(project, toolWindow.getDisposable(), null);

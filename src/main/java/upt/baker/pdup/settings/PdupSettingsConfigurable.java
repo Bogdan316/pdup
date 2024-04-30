@@ -29,19 +29,22 @@ public class PdupSettingsConfigurable implements Configurable {
     @Override
     public boolean isModified() {
         var settings = PdupSettingsState.getInstance();
-        return settingsComponent.getTokenLen() != settings.tokenLen;
+        return settingsComponent.getTokenLen() != settings.tokenLen
+                || settingsComponent.getLines() != settings.lines;
     }
 
     @Override
     public void apply() {
         var settings = PdupSettingsState.getInstance();
         settings.tokenLen = settingsComponent.getTokenLen();
+        settings.lines = settingsComponent.getLines();
     }
 
     @Override
     public void reset() {
         var settings = PdupSettingsState.getInstance();
         settingsComponent.setTokenLen(settings.tokenLen);
+        settingsComponent.setLines(settings.lines);
     }
 
     @Override

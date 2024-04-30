@@ -14,6 +14,7 @@ import org.jetbrains.annotations.Nullable;
 )
 public class PdupSettingsState implements PersistentStateComponent<PdupSettingsState> {
     public int tokenLen = 200;
+    public int lines = 0;
 
     public static PdupSettingsState getInstance() {
         return ApplicationManager.getApplication().getService(PdupSettingsState.class);
