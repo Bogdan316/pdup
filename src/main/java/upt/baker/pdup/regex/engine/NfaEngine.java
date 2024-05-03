@@ -108,13 +108,13 @@ public class NfaEngine {
         }
     }
 
-    public static void main(String[] args) {
-        var tokens = new ReParser(".* & C & .*").postOrder();
-        System.out.println(tokens);
-        var toks = List.<String>of("C");
-        var engine = new NfaEngine();
-        var re = engine.buildNfa(tokens);
-        System.out.println(engine.fullMatch(re, toks));
-        System.exit(0);
-    }
+//    public static void main(String[] args) {
+//        var tokens = new ReParser(".* & C & .*");
+//        System.out.println(tokens);
+//        var toks = List.<String>of("C");
+//        var engine = new NfaEngine();
+//        var re = engine.buildNfa(tokens);
+//        System.out.println(engine.fullMatch(re, toks));
+//        System.exit(0);
+//    }
 }

@@ -3,16 +3,22 @@ package upt.baker.pdup.regex.parser;
 import org.jetbrains.annotations.Nullable;
 
 import static upt.baker.pdup.regex.parser.ReToken.ReTokenType.*;
+import static upt.baker.pdup.regex.parser.ReExpNode.*;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class ReParser {
-    int i = 0;
+    private int i = 0;
+    private int groupIdx = 1;
     private final List<ReToken> tokens;
 
     public ReParser(String exp) {
         this.tokens = tokenize(exp);
+    }
+
+    public ReExpNode build() {
+        return expr();
     }
 
     private @Nullable ReToken advance() {
@@ -23,7 +29,7 @@ public class ReParser {
         return null;
     }
 
-    private AstNode expr() {
+    private ReExpNode expr() {
         var left = term();
         while (true) {
             var op = advance();
@@ -32,16 +38,17 @@ public class ReParser {
             }
             var t = op.type();
             if (t != OR) {
-                throw new ReSyntaxError("Expected '|' but got '" + op.value() + "'");
+                i--;
+                return left;
             }
             var right = term();
-            left = new AstNode.BinaryExp(op, left, right);
+            left = new AltExp(left, right);
         }
 
         return left;
     }
 
-    private AstNode term() {
+    private ReExpNode term() {
         var left = factor();
         while (true) {
             var op = advance();
@@ -54,20 +61,20 @@ public class ReParser {
                 return left;
             }
             var right = factor();
-            left = new AstNode.BinaryExp(op, left, right);
+            left = new ConcatExp(left, right);
         }
 
         return left;
     }
 
 
-    private AstNode factor() {
+    private ReExpNode factor() {
         var tok = advance();
         if (tok == null) {
             throw new ReSyntaxError("Unexpected end of expression");
         }
         if (tok.type() == LPAREN) {
-            var e = term();
+            var e = new GroupExp(expr(), groupIdx++);
             tok = advance();
             if (tok == null) {
                 throw new ReSyntaxError("Expected ')' but reached the end of expression");
@@ -76,38 +83,43 @@ public class ReParser {
                 throw new ReSyntaxError("Expected ')' but got '" + tok.value() + "'");
             }
 
-            var p = fFactor(e);
-            return p == null ? e : p;
+            return fFactor(e);
         } else {
-            var t = new AstNode.Term(tok);
-            var e = fFactor(t);
-            return e == null ? t : e;
+            ReExpNode t;
+            if (tok.type() == TERM) {
+                t = new LiteralExp(tok.value());
+            } else if (tok.type() == DOT) {
+                t = new AnyExp();
+            } else {
+                throw new IllegalStateException();
+            }
+
+            return fFactor(t);
         }
     }
 
-    private @Nullable AstNode fFactor(AstNode lastNode) {
+    private ReExpNode fFactor(ReExpNode lastNode) {
         int init = i;
         var op = advance();
         if (op == null) {
             i = init;
-            return null;
+            return lastNode;
         }
 
         var t = op.type();
         if (t != STAR && t != HOOK && t != PLUS) {
             i = init;
-            return null;
+            return lastNode;
         }
 
-        var u = new AstNode.UnaryExp(op, lastNode);
-        var e = fFactor(u);
-        return e == null ? u : e;
-    }
+        var u = switch (t) {
+            case STAR -> new StarExp(lastNode);
+            case PLUS -> new PlusExp(lastNode);
+            case HOOK -> new HookExp(lastNode);
+            default -> throw new IllegalStateException();
+        };
 
-    public List<ReToken> postOrder() {
-        var order = new ArrayList<ReToken>();
-        expr().postOrder(order);
-        return order;
+        return fFactor(u);
     }
 
     public List<ReToken> tokenize(String re) {
@@ -140,6 +152,6 @@ public class ReParser {
 
     public static void main(String[] args) {
         var p = new ReParser("a & (b & b)+ & a");
-        System.out.println(p.postOrder());
+        System.out.println(p.build());
     }
 }
