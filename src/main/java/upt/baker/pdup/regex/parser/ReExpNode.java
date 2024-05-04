@@ -5,6 +5,20 @@ package upt.baker.pdup.regex.parser;
 public interface ReExpNode {
     <T> void accept(ReVoidAstVisitor<T> v, T arg);
 
+    record StarHookExp(ReExpNode exp) implements ReExpNode {
+        @Override
+        public <T> void accept(ReVoidAstVisitor<T> v, T arg) {
+            v.visit(this, arg);
+        }
+
+        @Override
+        public String toString() {
+            return "StarHook{" +
+                    "exp=" + exp +
+                    '}';
+        }
+    }
+
     record StarExp(ReExpNode exp) implements ReExpNode {
         @Override
         public String toString() {
@@ -105,7 +119,7 @@ public interface ReExpNode {
         }
     }
 
-    record LiteralExp(String value) implements ReExpNode {
+    record LiteralExp(int value) implements ReExpNode {
         @Override
         public String toString() {
             return "Literal{" +

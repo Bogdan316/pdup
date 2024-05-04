@@ -4,7 +4,7 @@ import java.util.Map;
 
 import static upt.baker.pdup.regex.parser.ReToken.ReTokenType.*;
 
-public record ReToken(ReTokenType type, String value) {
+public record ReToken(ReTokenType type, int value) {
 
     public enum ReTokenType {
         STAR,
@@ -35,7 +35,7 @@ public record ReToken(ReTokenType type, String value) {
             throw new UnkReTokenException(c + "");
         }
 
-        return new ReToken(type, c + "");
+        return new ReToken(type, type.ordinal());
     }
 
     @Override

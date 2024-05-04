@@ -20,6 +20,19 @@ public class ReInstVisitor implements ReVoidAstVisitor<List<Inst>> {
     }
 
     @Override
+    public void visit(StarHookExp exp, List<Inst> arg) {
+        int label = arg.size();
+        var split = new Inst.SplitInst();
+        arg.add(split);
+        split.l2 = arg.size();
+        exp.exp().accept(this, arg);
+        var jmp = new Inst.JmpInst();
+        jmp.label = label;
+        arg.add(jmp);
+        split.l1 = arg.size();
+    }
+
+    @Override
     public void visit(PlusExp exp, List<Inst> arg) {
         int l1 = arg.size();
         exp.exp().accept(this, arg);

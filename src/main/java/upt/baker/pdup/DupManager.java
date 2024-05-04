@@ -8,36 +8,69 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.roots.ProjectFileIndex;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.openapi.vfs.VirtualFile;
+import com.intellij.openapi.vfs.VirtualFileManager;
 import com.intellij.util.indexing.FileBasedIndex;
+import com.intellij.util.indexing.FileBasedIndexProjectHandler;
 import upt.baker.pdup.index.PdupFileIndex;
+import upt.baker.pdup.regex.ReMatcher;
 import upt.baker.pdup.settings.PdupSettingsState;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
 
 public class DupManager {
     private final Project project;
     private final PdupSettingsState state;
+    private final FileBasedIndex fileBasedIdx;
+    private final ProjectFileIndex projFileIdx;
+    private final ReMatcher matcher;
 
     public DupManager(Project project) {
         this.project = project;
         this.state = PdupSettingsState.getInstance().getState();
+        this.fileBasedIdx = FileBasedIndex.getInstance();
+        this.projFileIdx = ProjectFileIndex.getInstance(project);
+        this.matcher = new ReMatcher("IMPORT_KEYWORD & .*? & SEMICOLON | PACKAGE_KEYWORD & .*? & SEMICOLON | " +
+                "(PUBLIC_KEYWORD | PROTECTED_KEYWORD | PRIVATE_KEYWORD) & STATIC_KEYWORD? & .*? & IDENTIFIER & EQ & .*? & SEMICOLON");
+    }
+
+    private List<PdupToken> getFilteredTokens(VirtualFile file) {
+        var tokens = fileBasedIdx.getSingleEntryIndexData(PdupFileIndex.NAME, file, project);
+        if (tokens == null) {
+            fileBasedIdx.requestReindex(file);
+            tokens = fileBasedIdx.getSingleEntryIndexData(PdupFileIndex.NAME, file, project);
+        }
+
+        if (tokens == null) {
+            return new ArrayList<>();
+        }
+
+        var occur = matcher.findAll(tokens);
+        if (occur.isEmpty()) {
+            return tokens;
+        }
+
+        var copy = new ArrayList<PdupToken>();
+        int i = 0;
+        for (var o : occur) {
+            copy.addAll(tokens.subList(i, o.start()));
+            i = o.start() + o.len();
+        }
+        copy.addAll(tokens.subList(i, tokens.size()));
+
+        return copy;
     }
 
 
     public List<Dup> getDups() {
-        var fileIndex = FileBasedIndex.getInstance();
         var lang = Language.findInstance(JavaLanguage.class);
         if (lang == null) {
             return List.of();
         }
 
         var javaFiles = new ArrayList<VirtualFile>();
-        var index = ProjectFileIndex.getInstance(project);
-        index.iterateContent(virtualFile -> {
-            if (virtualFile.getFileType().getName().equals("JAVA") && index.isInSourceContent(virtualFile)
-                    && !index.isInTestSourceContent(virtualFile) && !index.isInLibrary(virtualFile)) {
+        projFileIdx.iterateContent(virtualFile -> {
+            if (virtualFile.getFileType().getName().equals("JAVA") && projFileIdx.isInSourceContent(virtualFile)
+                    && !projFileIdx.isInTestSourceContent(virtualFile) && !projFileIdx.isInLibrary(virtualFile)) {
                 javaFiles.add(virtualFile);
             }
             return true;
@@ -50,18 +83,24 @@ public class DupManager {
         int size = javaFiles.size();
         for (int i = 0; i < size; i++) {
             var firstFile = javaFiles.get(i);
-            var tokens = fileIndex.getSingleEntryIndexData(PdupFileIndex.NAME, firstFile, project);
-            // TODO: rebuild when null
-            if (tokens == null) {
-                continue;
-            }
+            System.out.println(firstFile);
+            var tokens = getFilteredTokens(firstFile);
+            int off = tokens.stream().mapToInt(PdupToken::getIdx).max().orElse(0);
             for (int j = i + 1; j < size; j++) {
                 var secondFile = javaFiles.get(j);
+                System.out.println(secondFile);
                 try {
-                    var theTokens = fileIndex.getSingleEntryIndexData(PdupFileIndex.NAME, secondFile, project);
-                    if (theTokens == null) {
-                        continue;
+                    var theTokens = getFilteredTokens(secondFile);
+                    if (off >= 0) {
+                        // add 1 in case the biggest identifier idx is 0
+                        off++;
+                        for (var t : theTokens) {
+                            if (t.idx >= 0) {
+                                t.idx += off;
+                            }
+                        }
                     }
+                    // JDebuggerPanel.java
                     int tokMid = theTokens.size();
                     theTokens.addAll(tokens);
                     theTokens.add(new PdupToken(Integer.MIN_VALUE, -1, -1));
@@ -106,10 +145,10 @@ public class DupManager {
                     return dups;
                 }
             }
-            break;
         }
 
         System.out.println("DONE");
+        System.exit(0);
         return dups;
     }
 }

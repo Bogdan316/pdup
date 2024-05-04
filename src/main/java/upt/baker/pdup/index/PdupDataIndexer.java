@@ -2,14 +2,18 @@ package upt.baker.pdup.index;
 
 import com.intellij.openapi.roots.ProjectFileIndex;
 import com.intellij.psi.*;
+import com.intellij.psi.impl.source.JavaLightTreeUtil;
 import com.intellij.psi.impl.source.tree.JavaDocElementType;
+import com.intellij.psi.impl.source.tree.LightTreeUtil;
 import com.intellij.psi.tree.TokenSet;
 import com.intellij.psi.util.PsiUtil;
 import com.intellij.util.indexing.FileContent;
+import com.intellij.util.indexing.PsiDependentFileContent;
 import com.intellij.util.indexing.SingleEntryIndexer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import upt.baker.pdup.PdupToken;
+import upt.baker.pdup.regex.ReMatcher;
 
 import java.util.*;
 
@@ -74,6 +78,7 @@ public class PdupDataIndexer extends SingleEntryIndexer<List<PdupToken>> {
         if (!isSourceFile(fileContent)) {
             return List.of();
         }
+        // TODO: take a look at lighter ast
         var psiFile = fileContent.getPsiFile();
 
         return depthFirst(psiFile);

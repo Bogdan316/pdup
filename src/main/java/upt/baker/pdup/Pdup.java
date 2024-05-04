@@ -40,7 +40,11 @@ public class Pdup<T extends PdupToken> {
 
     public int[] prev(List<T> params) {
         var res = new int[params.size()];
-        var occur = new int[params.size()];
+        int sz = params.stream().mapToInt(PdupToken::getIdx).max().orElse(-1);
+        if (sz < 0) {
+            sz = 0;
+        }
+        var occur = new int[sz + 1];
         Arrays.fill(occur, -1);
 
         for (int i = 0; i < params.size(); i++) {
@@ -266,7 +270,7 @@ public class Pdup<T extends PdupToken> {
 //            System.out.println(tmp);
 //            var p1 = tmp.split(" --> ")[1].split("\\|");
 //            var p2 = s.split(" --> ")[1].split("\\|");
-            // TODO: naive check, do the real one
+////             TODO: naive check, do the real one
 //            for (int l = 0; l < p1.length; l++) {
 //                if (!p1[l].equals(p2[l])) {
 //                    throw new IllegalStateException("Not matching for suffix: " + i + " at pos: " + l);

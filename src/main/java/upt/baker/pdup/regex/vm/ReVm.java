@@ -1,12 +1,14 @@
 package upt.baker.pdup.regex.vm;
 
-import org.jetbrains.annotations.NotNull;
-import upt.baker.pdup.regex.parser.ReParser;
+
+import upt.baker.pdup.PdupToken;
 
 import java.util.*;
 
 public class ReVm {
-    record VmThread(int pc, int[] groups) implements Comparable<VmThread> {
+    private List<Inst> prog = List.of();
+
+    private record VmThread(int pc, int[] groups) {
         @Override
         public boolean equals(Object o) {
             if (this == o) return true;
@@ -21,40 +23,62 @@ public class ReVm {
         }
 
         @Override
-        public int compareTo(@NotNull ReVm.VmThread o) {
-            return pc - o.pc();
+        public String toString() {
+            return "VmThread{" +
+                    "pc=" + pc +
+                    ", groups=" + Arrays.toString(groups) +
+                    '}';
         }
     }
 
-    private static boolean run(List<Inst> prog, List<String> input) {
-        var clist = new TreeSet<VmThread>();
-        var nlist = new TreeSet<VmThread>();
-        clist.add(new VmThread(0, new int[20]));
-        boolean matched = false;
+
+    private void addThread(Set<VmThread> l, VmThread t, int sp) {
+        if (l.contains(t)) {
+            return;
+        }
+        var i = prog.get(t.pc());
+        if (i instanceof Inst.JmpInst j) {
+            addThread(l, new VmThread(j.label, t.groups()), sp);
+        } else if (i instanceof Inst.SplitInst si) {
+            addThread(l, new VmThread(si.l1, t.groups()), sp);
+            addThread(l, new VmThread(si.l2, t.groups()), sp);
+        } else if (i instanceof Inst.SaveInst sv) {
+            var g = Arrays.copyOf(t.groups(), t.groups().length);
+            g[sv.saveIdx] = sp;
+            addThread(l, new VmThread(t.pc() + 1, g), sp);
+        } else {
+            l.add(t);
+        }
+    }
+
+    private VmThread removeFirst(Set<VmThread> s) {
+        var e = s.iterator().next();
+        s.remove(e);
+        return e;
+    }
+
+    public List<MatchGroups.Group> match(List<PdupToken> input) {
+        var clist = new LinkedHashSet<VmThread>();
+        var nlist = new LinkedHashSet<VmThread>();
+
+        addThread(clist, new VmThread(0, new int[20]), 0);
+        VmThread matched = null;
+        int sz = input.size();
         int pc;
-        for (int sp = 0; sp < input.size(); sp++) {
-            VmThread t;
-            while ((t = clist.pollFirst()) != null) {
+        for (int sp = 0; sp < sz + 1; sp++) {
+            while (!clist.isEmpty()) {
+                var t = removeFirst(clist);
                 pc = t.pc();
                 var i = prog.get(pc);
                 if (i instanceof Inst.LitInst l) {
-                    if (l.val().equals(input.get(sp))) {
-                        nlist.add(new VmThread(pc + 1, t.groups()));
+                    if (sp < sz && l.isMatching(input.get(sp).idx)) {
+                        addThread(nlist, new VmThread(pc + 1, t.groups()), sp + 1);
                     }
+                } else if (i instanceof Inst.AnyInst) {
+                    addThread(nlist, new VmThread(pc + 1, t.groups()), sp + 1);
                 } else if (i instanceof Inst.MatchInst) {
-                    matched = true;
-                    System.out.println(Arrays.toString(t.groups()));
+                    matched = t;
                     break;
-                } else if (i instanceof Inst.JmpInst j) {
-                    clist.add(new VmThread(j.label, t.groups));
-                } else if (i instanceof Inst.SplitInst si) {
-                    clist.add(new VmThread(si.l1, t.groups()));
-                    clist.add(new VmThread(si.l2, t.groups()));
-                } else if (i instanceof Inst.SaveInst sv) {
-                   t.groups()[sv.saveIdx]  = sp;
-                   clist.add(new VmThread(pc + 1, t.groups()));
-                } else {
-                    throw new IllegalStateException();
                 }
             }
 
@@ -64,18 +88,14 @@ public class ReVm {
             nlist.clear();
         }
 
-        return matched;
+        if (matched == null) {
+            return List.of();
+        } else {
+            return new MatchGroups(matched.groups()).getGroups();
+        }
     }
 
-    public static void main(String[] args) {
-        var vis = new ReInstVisitor();
-        var insts = new ArrayList<Inst>();
-        new ReParser("(a+) & (b+)").build().accept(vis, insts);
-        insts.add(new Inst.MatchInst());
-        for (int i = 0; i < insts.size(); i++) {
-            System.out.println(i + " -> " + insts.get(i));
-        }
-        System.out.println(run(insts, List.of("A", "A", "A", "B", "B", "B", "C", "\0")));
-
+    public void setProg(List<Inst> prog) {
+        this.prog = prog;
     }
 }

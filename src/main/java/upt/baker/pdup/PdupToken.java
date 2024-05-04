@@ -1,12 +1,14 @@
 package upt.baker.pdup;
 
+import upt.baker.pdup.utils.KeywordMapping;
+
 import java.io.DataInput;
 import java.io.DataOutput;
 import java.io.IOException;
 import java.util.Objects;
 
 public class PdupToken {
-    public final int idx;
+    public int idx;
 
     public final int startOffset;
     public final int endOffset;
@@ -15,6 +17,10 @@ public class PdupToken {
         this.idx = idx;
         this.startOffset = startOffset;
         this.endOffset = endOffset;
+    }
+
+    public int getIdx() {
+        return idx;
     }
 
     public void write(DataOutput dataOutput) throws IOException {
@@ -32,9 +38,14 @@ public class PdupToken {
         return "PdupToken{" +
                 "idx=" + idx +
                 ", offset=" + startOffset +
+                ", debugName=" + KeywordMapping.getName(idx) +
                 '}';
     }
 
+    //    @Override
+//    public String toString() {
+//        return (idx >= 0 ? String.format("%-3s", "p") : String.format("%-3d", idx))+ "|";
+//    }
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

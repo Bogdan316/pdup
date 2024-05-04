@@ -1,23 +1,28 @@
 package upt.baker.pdup.regex.parser;
 
+import com.intellij.psi.JavaTokenType;
+import org.apache.tools.ant.taskdefs.Java;
 import org.jetbrains.annotations.Nullable;
+import upt.baker.pdup.utils.KeywordMapping;
 
 import static upt.baker.pdup.regex.parser.ReToken.ReTokenType.*;
 import static upt.baker.pdup.regex.parser.ReExpNode.*;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 public class ReParser {
     private int i = 0;
-    private int groupIdx = 1;
-    private final List<ReToken> tokens;
+    private int groupIdx = 0;
+    private List<ReToken> tokens = List.of();
 
-    public ReParser(String exp) {
-        this.tokens = tokenize(exp);
-    }
-
-    public ReExpNode build() {
+    public ReExpNode build(String re) {
+        i = 0;
+        groupIdx = 0;
+        tokens = tokenize(re);
         return expr();
     }
 
@@ -74,7 +79,8 @@ public class ReParser {
             throw new ReSyntaxError("Unexpected end of expression");
         }
         if (tok.type() == LPAREN) {
-            var e = new GroupExp(expr(), groupIdx++);
+            int idx = groupIdx++;
+            var e = new GroupExp(expr(), idx);
             tok = advance();
             if (tok == null) {
                 throw new ReSyntaxError("Expected ')' but reached the end of expression");
@@ -113,7 +119,17 @@ public class ReParser {
         }
 
         var u = switch (t) {
-            case STAR -> new StarExp(lastNode);
+            case STAR -> {
+                var h = advance();
+                if (h == null) {
+                    yield new StarExp(lastNode);
+                }
+                if (h.type() == HOOK) {
+                    yield new StarHookExp(lastNode);
+                }
+                i--;
+                yield new StarExp(lastNode);
+            }
             case PLUS -> new PlusExp(lastNode);
             case HOOK -> new HookExp(lastNode);
             default -> throw new IllegalStateException();
@@ -122,8 +138,11 @@ public class ReParser {
         return fFactor(u);
     }
 
-    public List<ReToken> tokenize(String re) {
-        var tokens = new ArrayList<ReToken>();
+    private List<ReToken> tokenize(String re) {
+        var toks = new ArrayList<ReToken>();
+        // wrap in parans to have group 0 (full match group)
+        toks.add(ReToken.opFromChar('('));
+
         var term = new StringBuilder();
 
         for (var c : (re + " ").toUpperCase().toCharArray()) {
@@ -132,26 +151,20 @@ public class ReParser {
             } else {
                 if (!term.isEmpty()) {
                     var t = term.toString();
-//                    try {
-//                        // check token exists as defined by intellij
-//                        JavaTokenType.class.getField(t);
-//                    } catch (NoSuchFieldException e) {
-//                        throw new UnkReTokenException(t);
-//                    }
-                    tokens.add(new ReToken(TERM, term.toString()));
+                    Integer idx = KeywordMapping.getIndex(t);
+                    if (idx == null) {
+                        throw new UnkReTokenException(t);
+                    }
+                    toks.add(new ReToken(TERM, idx));
                     term = new StringBuilder();
                 }
                 if (!Character.isWhitespace(c)) {
-                    tokens.add(ReToken.opFromChar(c));
+                    toks.add(ReToken.opFromChar(c));
                 }
             }
         }
 
-        return tokens;
-    }
-
-    public static void main(String[] args) {
-        var p = new ReParser("a & (b & b)+ & a");
-        System.out.println(p.build());
+        toks.add(ReToken.opFromChar(')'));
+        return toks;
     }
 }
