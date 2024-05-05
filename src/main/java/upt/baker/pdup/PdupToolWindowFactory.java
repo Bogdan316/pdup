@@ -52,6 +52,7 @@ public class PdupToolWindowFactory implements ToolWindowFactory {
             this.toolWindow = toolWindow;
             contentPanel.setLayout(new BorderLayout(0, 20));
             contentPanel.setBorder(BorderFactory.createEmptyBorder(40, 0, 0, 0));
+            // TODO: this way the panel will not update, it is created only once
             this.dups = new DupManager(project).getDups();
             createContentPanel();
         }

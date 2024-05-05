@@ -14,6 +14,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import upt.baker.pdup.PdupToken;
 import upt.baker.pdup.regex.ReMatcher;
+import upt.baker.pdup.settings.PdupSettingsState;
 
 import java.util.*;
 
@@ -22,13 +23,14 @@ public class PdupDataIndexer extends SingleEntryIndexer<List<PdupToken>> {
             TokenType.WHITE_SPACE, JavaTokenType.END_OF_LINE_COMMENT, JavaTokenType.C_STYLE_COMMENT
     ), JavaDocElementType.ALL_JAVADOC_ELEMENTS);
 
+    private final PdupSettingsState state;
+
     protected PdupDataIndexer(boolean acceptNullValues) {
         super(acceptNullValues);
+        this.state = PdupSettingsState.getInstance().getState();
     }
 
     private List<PdupToken> depthFirst(PsiFile element) {
-        var matcher = new ReMatcher("IMPORT_KEYWORD & .*? & SEMICOLON | PACKAGE_KEYWORD & .*? & SEMICOLON | " +
-                "(PUBLIC_KEYWORD | PROTECTED_KEYWORD | PRIVATE_KEYWORD) & STATIC_KEYWORD? & .*? & IDENTIFIER & EQ & .*? & SEMICOLON");
         var identifiers = new HashMap<String, Integer>();
         int id = 0;
 
@@ -62,6 +64,12 @@ public class PdupDataIndexer extends SingleEntryIndexer<List<PdupToken>> {
             }
         }
 
+        var pattern = state.getMergedPatterns();
+        if (pattern.isBlank()) {
+            return tokens;
+        }
+
+        var matcher = new ReMatcher(pattern);
         var occur = matcher.findAll(tokens);
         if (occur.isEmpty()) {
             return tokens;

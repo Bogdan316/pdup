@@ -87,9 +87,8 @@ public class DupManager {
                     theTokens.add(new PdupToken(Integer.MIN_VALUE, -1, -1));
 
                     // TODO: make tree clonable, keep the tree from the first file
-                    // TODO: this introduces duplicates
+                    // TODO: this introduces duplicates ?
                     // TODO: add listener to update index
-                    // TODO: second indenitifiers ids should be + an offset
                     var t = new Pdup<>(state.tokenLen, theTokens, len -> (p1, p2) -> {
                         try {
                             int end = p1 + len - 1;
@@ -126,10 +125,10 @@ public class DupManager {
                     return dups;
                 }
             }
+            break;
         }
 
         System.out.println("DONE");
-        System.exit(0);
         return dups;
     }
 }
