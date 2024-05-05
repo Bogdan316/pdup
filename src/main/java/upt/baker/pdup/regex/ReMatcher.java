@@ -19,8 +19,7 @@ public class ReMatcher {
         ReInstVisitor compiler = new ReInstVisitor();
         parser.build(".*? & (" + re + ")").accept(compiler, prog);
         prog.add(new Inst.MatchInst());
-        vm = new ReVm();
-        vm.setProg(prog);
+        vm = new ReVm(prog);
     }
 
     public List<MatchGroups.Group> findAll(List<PdupToken> target) {

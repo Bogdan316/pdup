@@ -27,6 +27,8 @@ public class PdupDataIndexer extends SingleEntryIndexer<List<PdupToken>> {
     }
 
     private List<PdupToken> depthFirst(PsiFile element) {
+        var matcher = new ReMatcher("IMPORT_KEYWORD & .*? & SEMICOLON | PACKAGE_KEYWORD & .*? & SEMICOLON | " +
+                "(PUBLIC_KEYWORD | PROTECTED_KEYWORD | PRIVATE_KEYWORD) & STATIC_KEYWORD? & .*? & IDENTIFIER & EQ & .*? & SEMICOLON");
         var identifiers = new HashMap<String, Integer>();
         int id = 0;
 
@@ -60,7 +62,20 @@ public class PdupDataIndexer extends SingleEntryIndexer<List<PdupToken>> {
             }
         }
 
-        return tokens;
+        var occur = matcher.findAll(tokens);
+        if (occur.isEmpty()) {
+            return tokens;
+        }
+
+        var copy = new ArrayList<PdupToken>();
+        int i = 0;
+        for (var o : occur) {
+            copy.addAll(tokens.subList(i, o.start()));
+            i = o.start() + o.len();
+        }
+        copy.addAll(tokens.subList(i, tokens.size()));
+
+        return copy;
     }
 
     private boolean isSourceFile(FileContent fileContent) {
