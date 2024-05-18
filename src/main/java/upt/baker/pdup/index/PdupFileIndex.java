@@ -1,5 +1,6 @@
 package upt.baker.pdup.index;
 
+import com.intellij.ide.highlighter.JavaFileType;
 import com.intellij.openapi.project.ProjectManager;
 import com.intellij.openapi.roots.TestSourcesFilter;
 import com.intellij.openapi.vfs.VirtualFileManager;
@@ -37,7 +38,7 @@ public class PdupFileIndex extends SingleEntryFileBasedIndexExtension<List<PdupT
     @NotNull
     @Override
     public FileBasedIndex.InputFilter getInputFilter() {
-        return virtualFile -> virtualFile.getFileType().getName().equals("JAVA");
+        return virtualFile -> virtualFile.getFileType().equals(JavaFileType.INSTANCE);
     }
 
     @Override

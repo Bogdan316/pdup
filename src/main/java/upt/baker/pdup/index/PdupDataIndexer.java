@@ -2,13 +2,10 @@ package upt.baker.pdup.index;
 
 import com.intellij.openapi.roots.ProjectFileIndex;
 import com.intellij.psi.*;
-import com.intellij.psi.impl.source.JavaLightTreeUtil;
 import com.intellij.psi.impl.source.tree.JavaDocElementType;
-import com.intellij.psi.impl.source.tree.LightTreeUtil;
 import com.intellij.psi.tree.TokenSet;
 import com.intellij.psi.util.PsiUtil;
 import com.intellij.util.indexing.FileContent;
-import com.intellij.util.indexing.PsiDependentFileContent;
 import com.intellij.util.indexing.SingleEntryIndexer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -16,7 +13,10 @@ import upt.baker.pdup.PdupToken;
 import upt.baker.pdup.regex.ReMatcher;
 import upt.baker.pdup.settings.PdupSettingsState;
 
-import java.util.*;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 
 public class PdupDataIndexer extends SingleEntryIndexer<List<PdupToken>> {
     private static final TokenSet IGNORED = TokenSet.orSet(TokenSet.create(
@@ -47,15 +47,16 @@ public class PdupDataIndexer extends SingleEntryIndexer<List<PdupToken>> {
                 var key = e.getText().trim();
                 var next = identifiers.get(key);
                 if (next == null) {
+                    // TODO: try hash not ids
                     identifiers.put(key, id);
                     next = id;
                     id++;
                 }
-                int off = e.getTextOffset();
-                tokens.add(new PdupToken(next, off, off + e.getTextLength()));
+                var r = e.getTextRange();
+                tokens.add(new PdupToken(next, r.getStartOffset(), r.getEndOffset()));
             } else if (e instanceof PsiJavaToken token) {
-                int off = e.getTextOffset();
-                tokens.add(new PdupToken(-token.getTokenType().getIndex(), off, off + e.getTextLength()));
+                var r = e.getTextRange();
+                tokens.add(new PdupToken(-token.getTokenType().getIndex(), r.getStartOffset(), r.getEndOffset()));
             } else {
                 var ch = e.getChildren();
                 for (int i = ch.length - 1; i >= 0; i--) {
@@ -64,6 +65,10 @@ public class PdupDataIndexer extends SingleEntryIndexer<List<PdupToken>> {
             }
         }
 
+        return filterTokens(tokens);
+    }
+
+    private List<PdupToken> filterTokens(List<PdupToken> tokens) {
         var pattern = state.getMergedPatterns();
         if (pattern.isBlank()) {
             return tokens;

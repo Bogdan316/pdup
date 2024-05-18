@@ -14,6 +14,9 @@ import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Rectangle;
 
+/**
+ * Displays inline text in an editor using a round rectangle
+ */
 public class IdentifierElementRenderer implements EditorCustomElementRenderer {
     private static final int HORIZONTAL_MARGIN = 3;
     private static final int HORIZONTAL_PADDING = 5;
@@ -30,8 +33,7 @@ public class IdentifierElementRenderer implements EditorCustomElementRenderer {
     }
 
     private static FontInfo getFontInfo(@NotNull Editor editor) {
-        var colorsScheme = editor.getColorsScheme();
-        var fontPreferences = colorsScheme.getFontPreferences();
+        var fontPreferences = editor.getColorsScheme().getFontPreferences();
         return new FontInfo(
                 fontPreferences.getFontFamily(),
                 fontPreferences.getSize(fontPreferences.getFontFamily()) * 0.85f,

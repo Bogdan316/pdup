@@ -1,18 +1,13 @@
 package upt.baker.pdup.regex.parser;
 
-import com.intellij.psi.JavaTokenType;
-import org.apache.tools.ant.taskdefs.Java;
 import org.jetbrains.annotations.Nullable;
 import upt.baker.pdup.utils.KeywordMapping;
 
-import static upt.baker.pdup.regex.parser.ReToken.ReTokenType.*;
-import static upt.baker.pdup.regex.parser.ReExpNode.*;
-
-import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
+
+import static upt.baker.pdup.regex.parser.ReExpNode.*;
+import static upt.baker.pdup.regex.parser.ReToken.ReTokenType.*;
 
 public class ReParser {
     private int i = 0;

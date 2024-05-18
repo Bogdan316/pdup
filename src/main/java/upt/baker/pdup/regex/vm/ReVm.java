@@ -98,6 +98,29 @@ public class ReVm {
             mask[t.pc] = false;
             return t;
         }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null || getClass() != o.getClass()) return false;
+            ThreadList that = (ThreadList) o;
+            return Objects.equals(l, that.l) && Arrays.equals(mask, that.mask);
+        }
+
+        @Override
+        public int hashCode() {
+            int result = Objects.hash(l);
+            result = 31 * result + Arrays.hashCode(mask);
+            return result;
+        }
+
+        @Override
+        public String toString() {
+            return "ThreadList{" +
+                    "l=" + l +
+                    ", mask=" + Arrays.toString(mask) +
+                    '}';
+        }
     }
 
     private record VmThread(int pc, int[] groups) {

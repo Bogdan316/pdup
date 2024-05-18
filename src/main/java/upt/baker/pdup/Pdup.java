@@ -1,6 +1,5 @@
 package upt.baker.pdup;
 
-
 // TODO: balanced tree
 // TODO: better solution than the atomic integer
 // TODO: lists should be sorted
@@ -419,12 +418,12 @@ public class Pdup<T extends PdupToken> {
 
         public String psub() {
             if (getArcLen() >= 0 && getFirstPos() >= 0 && getPathLen() >= 0) {
-                String s = "";
+                StringBuilder s = new StringBuilder();
                 for (int i = getFirstPos(); i < getFirstPos() + getArcLen(); i++) {
-                    s += params.get(i);
+                    s.append(params.get(i));
                 }
 
-                return s;
+                return s.toString();
             }
 
             return "r";
@@ -434,10 +433,10 @@ public class Pdup<T extends PdupToken> {
         public String toString() {
             if (getArcLen() >= 0 && getFirstPos() >= 0 && getPathLen() >= 0) {
                 var s = psub();
-                String fullpath = s;
+                StringBuilder fullpath = new StringBuilder(s);
                 var crt = this.getParent();
                 while (crt != null) {
-                    fullpath = crt.psub() + fullpath;
+                    fullpath.insert(0, crt.psub());
                     crt = crt.getParent();
                 }
                 return s + " ~FULL_PATH~: " + fullpath.substring(1);

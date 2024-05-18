@@ -17,6 +17,7 @@ public class ReMatcher {
         var prog = new ArrayList<Inst>();
         ReParser parser = new ReParser();
         ReInstVisitor compiler = new ReInstVisitor();
+        // using '.*?' ensures we find the first occurrence of the match
         parser.build(".*? & (" + re + ")").accept(compiler, prog);
         prog.add(new Inst.MatchInst());
         vm = new ReVm(prog);

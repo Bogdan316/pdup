@@ -1,6 +1,5 @@
 package upt.baker.pdup.regex.vm;
 
-import com.intellij.codeInsight.completion.ml.JavaCompletionFeatures;
 import com.intellij.psi.JavaTokenType;
 import upt.baker.pdup.utils.KeywordMapping;
 

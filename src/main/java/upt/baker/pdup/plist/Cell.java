@@ -1,6 +1,5 @@
 package upt.baker.pdup.plist;
 
-import it.unimi.dsi.fastutil.ints.IntIterator;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Iterator;
