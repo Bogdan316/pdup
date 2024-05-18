@@ -32,7 +32,6 @@
                 id="upt.baker.pdup.settings.PdupSettingsConfigurable"
                 displayName="Pdup Settings"/>
         <fileBasedIndex implementation="upt.baker.pdup.index.PdupFileIndex"/>
-
     </extensions>
 
     <actions>

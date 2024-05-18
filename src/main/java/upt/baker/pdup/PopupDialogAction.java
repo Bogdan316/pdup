@@ -3,6 +3,7 @@ package upt.baker.pdup;
 import com.intellij.openapi.actionSystem.ActionUpdateThread;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
+import com.intellij.openapi.fileEditor.FileEditorManager;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.wm.ToolWindowAnchor;
 import com.intellij.openapi.wm.ToolWindowManager;
@@ -35,13 +36,13 @@ public class PopupDialogAction extends AnAction {
         var tool = manager.getToolWindow("Code Duplication");
         if (tool == null) {
             tool = manager.registerToolWindow("Code Duplication", b -> {
-                b.contentFactory = new PdupToolWindowFactory(project);
+                b.contentFactory = new PdupToolWindowFactory();
                 b.anchor = ToolWindowAnchor.BOTTOM;
                 b.canCloseContent = true;
                 return Unit.INSTANCE;
             });
         } else {
-            tool.getComponent().add(new PdupToolWindowFactory.PdupToolWindowContent(project, tool).getContentPanel());
+            tool.getComponent().add(new PdupToolWindowFactory.PdupToolWindowContent(project).getContentPanel());
         }
 
         tool.setAutoHide(true);

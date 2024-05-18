@@ -1,23 +1,24 @@
 package upt.baker.pdup;
 
-import com.intellij.diff.DiffContentFactory;
-import com.intellij.diff.DiffManager;
-import com.intellij.diff.DiffRequestPanel;
-import com.intellij.diff.contents.DocumentContent;
-import com.intellij.diff.requests.SimpleDiffRequest;
 import com.intellij.ide.SelectInEditorManager;
+import com.intellij.ide.highlighter.JavaFileType;
+import com.intellij.openapi.editor.EditorFactory;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.util.Disposer;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowFactory;
-import com.intellij.ui.IdeBorderFactory;
-import com.intellij.ui.OnePixelSplitter;
+import com.intellij.psi.PsiFileFactory;
+import com.intellij.psi.PsiIdentifier;
+import com.intellij.psi.util.PsiTreeUtil;
+import com.intellij.ui.*;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.content.Content;
 import com.intellij.ui.content.ContentFactory;
 import com.intellij.ui.table.JBTable;
 import com.intellij.util.ui.JBUI;
 import org.jetbrains.annotations.NotNull;
+import upt.baker.pdup.inlay.IdentifierElementRenderer;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableCellRenderer;
@@ -28,28 +29,21 @@ import java.awt.event.MouseEvent;
 import java.util.List;
 
 public class PdupToolWindowFactory implements ToolWindowFactory {
-    private final Project project;
-
-    public PdupToolWindowFactory(Project project) {
-        this.project = project;
-    }
 
     @Override
     public void createToolWindowContent(@NotNull Project project, @NotNull ToolWindow toolWindow) {
-        PdupToolWindowContent toolWindowContent = new PdupToolWindowContent(project, toolWindow);
+        PdupToolWindowContent toolWindowContent = new PdupToolWindowContent(project);
         Content content = ContentFactory.getInstance().createContent(toolWindowContent.getContentPanel(), "", false);
         toolWindow.getContentManager().addContent(content);
     }
 
     public static class PdupToolWindowContent {
         private final OnePixelSplitter contentPanel = new OnePixelSplitter();
-        private final ToolWindow toolWindow;
         private final Project project;
         private final List<Dup> dups;
 
-        public PdupToolWindowContent(Project project, ToolWindow toolWindow) {
+        public PdupToolWindowContent(Project project) {
             this.project = project;
-            this.toolWindow = toolWindow;
             contentPanel.setLayout(new BorderLayout(0, 20));
             contentPanel.setBorder(BorderFactory.createEmptyBorder(40, 0, 0, 0));
             // TODO: this way the panel will not update, it is created only once
@@ -78,8 +72,8 @@ public class PdupToolWindowFactory implements ToolWindowFactory {
                     return Dup.class;
                 }
             };
-            model.addColumn("a");
-            model.addColumn("b");
+            model.addColumn("");
+            model.addColumn("");
             for (var d : dups) {
                 model.addRow(new Object[]{d, d});
             }
@@ -132,19 +126,51 @@ public class PdupToolWindowFactory implements ToolWindowFactory {
         }
 
         private JComponent getDiff(Dup dup) {
-            DiffContentFactory contentFactory = DiffContentFactory.getInstance();
-            DocumentContent oldContent = contentFactory.create(dup.getFirstCodeSegment(), dup.firstFile());
-            DocumentContent newContent = contentFactory.create(dup.getSecondCodeSegment(), dup.secondFile());
-            SimpleDiffRequest request = new SimpleDiffRequest(null, oldContent, newContent, dup.firstFile().getName(), dup.secondFile().getName());
+            var factory = EditorFactory.getInstance();
+            var lftDoc = factory.createDocument(dup.getFirstCodeSegment());
+            var lftEditor = factory.createEditor(lftDoc, project, dup.firstFile(), true);
 
-            DiffRequestPanel diffPanel = DiffManager.getInstance().createRequestPanel(project, toolWindow.getDisposable(), null);
-            diffPanel.setRequest(request);
-            return diffPanel.getComponent();
+            var rhtDoc = factory.createDocument(dup.getSecondCodeSegment());
+            var rhtEditor = factory.createEditor(rhtDoc, project, dup.firstFile(), true);
+            var panel = new OnePixelSplitter();
+            panel.setFirstComponent(lftEditor.getComponent());
+            panel.setSecondComponent(rhtEditor.getComponent());
+
+            // sync scroll bars
+            lftEditor.getScrollingModel().addVisibleAreaListener(visibleAreaEvent -> {
+                int off = visibleAreaEvent.getEditor().getScrollingModel().getVerticalScrollOffset();
+                rhtEditor.getScrollingModel().scrollVertically(off);
+            });
+
+            rhtEditor.getScrollingModel().addVisibleAreaListener(visibleAreaEvent -> {
+                int off = visibleAreaEvent.getEditor().getScrollingModel().getVerticalScrollOffset();
+                lftEditor.getScrollingModel().scrollVertically(off);
+            });
+
+            var psiFactory = PsiFileFactory.getInstance(project);
+            var lftFile = psiFactory.createFileFromText(JavaFileType.INSTANCE.getLanguage(), dup.getFirstCodeSegment());
+            var lftIds = PsiTreeUtil.collectElementsOfType(lftFile, PsiIdentifier.class).iterator();
+
+            var rhtFile = psiFactory.createFileFromText(JavaFileType.INSTANCE.getLanguage(), dup.getSecondCodeSegment());
+            var rhtIds = PsiTreeUtil.collectElementsOfType(rhtFile, PsiIdentifier.class).iterator();
+
+            var lftInlay = lftEditor.getInlayModel();
+            var rhtInlay = rhtEditor.getInlayModel();
+
+            while (lftIds.hasNext() && rhtIds.hasNext()) {
+                var li = lftIds.next();
+                var ri = rhtIds.next();
+                if (!li.getText().equals(ri.getText())) {
+                    lftInlay.addInlineElement(li.getTextRange().getEndOffset(), new IdentifierElementRenderer(":" + ri.getText()));
+                    rhtInlay.addInlineElement(ri.getTextRange().getStartOffset(), new IdentifierElementRenderer(li.getText() + ":"));
+                }
+            }
+            return panel;
         }
+
 
         public JPanel getContentPanel() {
             return contentPanel;
         }
-
     }
 }
