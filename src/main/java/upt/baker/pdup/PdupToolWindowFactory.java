@@ -3,6 +3,10 @@ package upt.baker.pdup;
 import com.intellij.ide.SelectInEditorManager;
 import com.intellij.ide.highlighter.JavaFileType;
 import com.intellij.openapi.editor.EditorFactory;
+import com.intellij.openapi.editor.markup.EffectType;
+import com.intellij.openapi.editor.markup.HighlighterTargetArea;
+import com.intellij.openapi.editor.markup.MarkupModel;
+import com.intellij.openapi.editor.markup.TextAttributes;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.wm.ToolWindow;
@@ -11,6 +15,7 @@ import com.intellij.psi.PsiFileFactory;
 import com.intellij.psi.PsiIdentifier;
 import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.ui.IdeBorderFactory;
+import com.intellij.ui.JBColor;
 import com.intellij.ui.OnePixelSplitter;
 import com.intellij.ui.components.JBScrollPane;
 import com.intellij.ui.content.Content;
@@ -20,7 +25,6 @@ import com.intellij.util.ui.JBUI;
 import org.jetbrains.annotations.NotNull;
 import upt.baker.pdup.duplications.Dup;
 import upt.baker.pdup.duplications.DupManager;
-import upt.baker.pdup.inlay.IdentifierElementRenderer;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableCellRenderer;
@@ -28,7 +32,9 @@ import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Random;
 
 public class PdupToolWindowFactory implements ToolWindowFactory {
 
@@ -40,6 +46,11 @@ public class PdupToolWindowFactory implements ToolWindowFactory {
     }
 
     public static class PdupToolWindowContent {
+        private static final List<Color> COLORS = List.of(
+                JBColor.BLUE, JBColor.RED,
+                JBColor.PINK, JBColor.ORANGE, JBColor.GREEN,
+                JBColor.YELLOW, JBColor.MAGENTA, JBColor.CYAN
+        );
         private final OnePixelSplitter contentPanel = new OnePixelSplitter();
         private final Project project;
         private final List<Dup> dups;
@@ -156,20 +167,50 @@ public class PdupToolWindowFactory implements ToolWindowFactory {
             var rhtFile = psiFactory.createFileFromText(JavaFileType.INSTANCE.getLanguage(), dup.getSecondCodeSegment());
             var rhtIds = PsiTreeUtil.collectElementsOfType(rhtFile, PsiIdentifier.class).iterator();
 
-            var lftInlay = lftEditor.getInlayModel();
-            var rhtInlay = rhtEditor.getInlayModel();
+            int i = 0;
+            var colorMap = new HashMap<String, Color>();
 
+            var lftModel = lftEditor.getMarkupModel();
+            var rhtModel = rhtEditor.getMarkupModel();
             while (lftIds.hasNext() && rhtIds.hasNext()) {
                 var li = lftIds.next();
                 var ri = rhtIds.next();
-                if (!li.getText().equals(ri.getText())) {
-                    lftInlay.addInlineElement(li.getTextRange().getEndOffset(), new IdentifierElementRenderer(":" + ri.getText()));
-                    rhtInlay.addInlineElement(ri.getTextRange().getStartOffset(), new IdentifierElementRenderer(li.getText() + ":"));
+                var color = colorMap.get(li.getText());
+                if (color == null) {
+                    color = generateRandomColor(JBColor.WHITE);
+                    colorMap.put(li.getText(), color);
+                    i++;
                 }
+                addRangeRect(lftModel, li, color);
+                addRangeRect(rhtModel, ri, color);
             }
             return panel;
         }
 
+        private void addRangeRect(MarkupModel model, PsiIdentifier id, Color color) {
+            var range = id.getTextRange();
+            model.addRangeHighlighter(
+                    range.getStartOffset(), range.getEndOffset(), 999,
+                    new TextAttributes(null, null, color, EffectType.SLIGHTLY_WIDER_BOX, Font.BOLD),
+                    HighlighterTargetArea.EXACT_RANGE
+            );
+        }
+
+        public Color generateRandomColor(Color mix) {
+            Random random = new Random();
+            int red = random.nextInt(256);
+            int green = random.nextInt(256);
+            int blue = random.nextInt(256);
+
+            // mix the color
+            if (mix != null) {
+                red = (red + mix.getRed()) / 2;
+                green = (green + mix.getGreen()) / 2;
+                blue = (blue + mix.getBlue()) / 2;
+            }
+
+            return new JBColor(new Color(red, green, blue), new Color(red, green, blue));
+        }
 
         public JPanel getContentPanel() {
             return contentPanel;
