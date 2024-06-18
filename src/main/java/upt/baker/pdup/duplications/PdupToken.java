@@ -1,4 +1,4 @@
-package upt.baker.pdup;
+package upt.baker.pdup.duplications;
 
 import upt.baker.pdup.utils.KeywordMapping;
 
@@ -37,7 +37,8 @@ public class PdupToken {
     public String toString() {
         return "PdupToken{" +
                 "idx=" + idx +
-                ", offset=" + startOffset +
+                ", startOffset=" + startOffset +
+                ", endOffset=" + endOffset +
                 ", debugName=" + KeywordMapping.getName(idx) +
                 '}';
     }

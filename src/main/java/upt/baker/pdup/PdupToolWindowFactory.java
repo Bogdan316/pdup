@@ -18,6 +18,8 @@ import com.intellij.ui.content.ContentFactory;
 import com.intellij.ui.table.JBTable;
 import com.intellij.util.ui.JBUI;
 import org.jetbrains.annotations.NotNull;
+import upt.baker.pdup.duplications.Dup;
+import upt.baker.pdup.duplications.DupManager;
 import upt.baker.pdup.inlay.IdentifierElementRenderer;
 
 import javax.swing.*;

@@ -1,14 +1,10 @@
 package upt.baker.pdup.index;
 
 import com.intellij.ide.highlighter.JavaFileType;
-import com.intellij.openapi.project.ProjectManager;
-import com.intellij.openapi.roots.TestSourcesFilter;
-import com.intellij.openapi.vfs.VirtualFileManager;
-import com.intellij.psi.util.PsiUtil;
 import com.intellij.util.indexing.*;
 import com.intellij.util.io.DataExternalizer;
 import org.jetbrains.annotations.NotNull;
-import upt.baker.pdup.PdupToken;
+import upt.baker.pdup.duplications.PdupToken;
 
 import java.util.List;
 

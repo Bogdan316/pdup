@@ -1,4 +1,4 @@
-package upt.baker.pdup;
+package upt.baker.pdup.duplications;
 
 // TODO: balanced tree
 // TODO: better solution than the atomic integer
@@ -14,22 +14,20 @@ import upt.baker.pdup.plist.PList;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.BiConsumer;
-import java.util.function.Function;
 
 
 public class Pdup<T extends PdupToken> {
     public final int[] P;
     public final int[] A;
     public final Node root;
-    private final Function<Integer, BiConsumer<Integer, Integer>> matchConsumer;
     private final List<T> params;
     private final int tokenLen;
+    // TODO: use in pcombine
+    private final PriorityQueue<DupRange> dupRanges = new PriorityQueue<>();
 
-    public Pdup(int tokenLen, List<T> params, Function<Integer, BiConsumer<Integer, Integer>> matchConsumer) {
+    public Pdup(int tokenLen, List<T> params) {
         this.tokenLen = tokenLen;
         this.params = params;
-        this.matchConsumer = matchConsumer;
         P = prev(params);
         A = rev(P);
 
@@ -191,7 +189,7 @@ public class Pdup<T extends PdupToken> {
         return scan(g, i, j, splitPoint);
     }
 
-    public void build() {
+    private void build() {
         var oldhd = root;
         Node oldchild = null;
         Node newhd;
@@ -294,7 +292,7 @@ public class Pdup<T extends PdupToken> {
                 if (f(lca(pl1), len + 1) != f(lca(pl2), len + 1)) {
                     for (var p1 : pl1) {
                         for (var p2 : pl2) {
-                            matchConsumer.apply(len).accept(p1, p2);
+                            dupRanges.add(new DupRange(p1, p2, len));
                         }
                     }
                 } else {
@@ -365,8 +363,10 @@ public class Pdup<T extends PdupToken> {
         return cl;
     }
 
-    public void pdup() {
+    public PriorityQueue<DupRange> pdup() {
+        build();
         pdup(root, tokenLen);
+        return dupRanges;
     }
 
     public class Node {

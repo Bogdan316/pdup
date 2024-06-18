@@ -9,7 +9,7 @@ import com.intellij.util.indexing.FileContent;
 import com.intellij.util.indexing.SingleEntryIndexer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import upt.baker.pdup.PdupToken;
+import upt.baker.pdup.duplications.PdupToken;
 import upt.baker.pdup.regex.ReMatcher;
 import upt.baker.pdup.settings.PdupSettingsState;
 

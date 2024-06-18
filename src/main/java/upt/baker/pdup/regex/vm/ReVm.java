@@ -1,6 +1,6 @@
 package upt.baker.pdup.regex.vm;
 
-import upt.baker.pdup.PdupToken;
+import upt.baker.pdup.duplications.PdupToken;
 
 import java.util.*;
 

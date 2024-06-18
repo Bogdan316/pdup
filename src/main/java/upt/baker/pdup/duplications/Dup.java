@@ -1,4 +1,4 @@
-package upt.baker.pdup;
+package upt.baker.pdup.duplications;
 
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.fileEditor.FileDocumentManager;

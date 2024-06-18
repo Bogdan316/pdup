@@ -1,6 +1,6 @@
 package upt.baker.pdup.regex;
 
-import upt.baker.pdup.PdupToken;
+import upt.baker.pdup.duplications.PdupToken;
 import upt.baker.pdup.regex.parser.ReParser;
 import upt.baker.pdup.regex.vm.Inst;
 import upt.baker.pdup.regex.vm.MatchGroups;

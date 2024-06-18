@@ -2,7 +2,7 @@ package upt.baker.pdup.index;
 
 import com.intellij.util.io.DataExternalizer;
 import org.jetbrains.annotations.NotNull;
-import upt.baker.pdup.PdupToken;
+import upt.baker.pdup.duplications.PdupToken;
 
 import java.io.DataInput;
 import java.io.DataOutput;
