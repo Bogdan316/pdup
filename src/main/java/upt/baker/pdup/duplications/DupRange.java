@@ -4,11 +4,11 @@ import org.jetbrains.annotations.NotNull;
 
 public record DupRange(int lftStartOff, int rhtStartOff, int len) implements Comparable<DupRange> {
     public int lftEndOff() {
-        return lftStartOff + len - 1;
+        return lftStartOff + len;
     }
 
     public int rhtEndOff() {
-        return rhtStartOff + len - 1;
+        return rhtStartOff + len;
     }
 
     public boolean isLftAfter(int idx) {
@@ -55,5 +55,12 @@ public record DupRange(int lftStartOff, int rhtStartOff, int len) implements Com
             return rhtStartOff - o.rhtStartOff;
         }
         return lftStartOff - o.lftStartOff;
+    }
+
+    public DupRange swap() {
+        if (lftStartOff > rhtStartOff) {
+            return new DupRange(rhtStartOff, lftStartOff, len);
+        }
+        return this;
     }
 }

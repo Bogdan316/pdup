@@ -5,7 +5,6 @@ import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.util.TextRange;
 import com.intellij.openapi.vfs.VirtualFile;
 
-// TODO: use markers ?
 public record Dup(Document firstDoc, TextRange firstRange, Document secondDoc, TextRange secondRange) {
 
     private int countLines(String text) {

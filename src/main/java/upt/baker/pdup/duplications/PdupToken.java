@@ -43,10 +43,6 @@ public class PdupToken {
                 '}';
     }
 
-    //    @Override
-//    public String toString() {
-//        return (idx >= 0 ? String.format("%-3s", "p") : String.format("%-3d", idx))+ "|";
-//    }
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;

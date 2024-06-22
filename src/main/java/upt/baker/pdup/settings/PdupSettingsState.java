@@ -18,7 +18,8 @@ public class PdupSettingsState implements PersistentStateComponent<PdupSettingsS
     public String[] patterns = new String[]{
             "IMPORT_KEYWORD & .*? & SEMICOLON",
             "PACKAGE_KEYWORD & .*? & SEMICOLON",
-            "(PUBLIC_KEYWORD | PROTECTED_KEYWORD | PRIVATE_KEYWORD) & STATIC_KEYWORD? & .*? & IDENTIFIER & EQ & .*? & SEMICOLON"
+            "(PUBLIC_KEYWORD | PROTECTED_KEYWORD | PRIVATE_KEYWORD) & STATIC_KEYWORD? & FINAL_KEYWORD? & " +
+                    "IDENTIFIER & .*? & IDENTIFIER & EQ & .*? & SEMICOLON"
     };
 
     public static PdupSettingsState getInstance() {

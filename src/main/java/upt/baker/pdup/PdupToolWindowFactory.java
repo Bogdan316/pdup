@@ -2,12 +2,15 @@ package upt.baker.pdup;
 
 import com.intellij.ide.SelectInEditorManager;
 import com.intellij.ide.highlighter.JavaFileType;
+import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.EditorFactory;
 import com.intellij.openapi.editor.markup.EffectType;
 import com.intellij.openapi.editor.markup.HighlighterTargetArea;
 import com.intellij.openapi.editor.markup.MarkupModel;
 import com.intellij.openapi.editor.markup.TextAttributes;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.project.ProjectManager;
+import com.intellij.openapi.project.ProjectManagerListener;
 import com.intellij.openapi.vfs.VirtualFile;
 import com.intellij.openapi.wm.ToolWindow;
 import com.intellij.openapi.wm.ToolWindowFactory;
@@ -41,36 +44,48 @@ public class PdupToolWindowFactory implements ToolWindowFactory {
     @Override
     public void createToolWindowContent(@NotNull Project project, @NotNull ToolWindow toolWindow) {
         PdupToolWindowContent toolWindowContent = new PdupToolWindowContent(project);
-        Content content = ContentFactory.getInstance().createContent(toolWindowContent.getContentPanel(), "", false);
+        Content content = ContentFactory.getInstance().createContent(toolWindowContent.createContentPanel(), "", false);
         toolWindow.getContentManager().addContent(content);
     }
 
     public static class PdupToolWindowContent {
-        private static final List<Color> COLORS = List.of(
-                JBColor.BLUE, JBColor.RED,
-                JBColor.PINK, JBColor.ORANGE, JBColor.GREEN,
-                JBColor.YELLOW, JBColor.MAGENTA, JBColor.CYAN
-        );
         private final OnePixelSplitter contentPanel = new OnePixelSplitter();
         private final Project project;
         private final List<Dup> dups;
+        private Editor lftEditor = null;
+        private Editor rhtEditor = null;
 
         public PdupToolWindowContent(Project project) {
             this.project = project;
             contentPanel.setLayout(new BorderLayout(0, 20));
             contentPanel.setBorder(BorderFactory.createEmptyBorder(40, 0, 0, 0));
-            // TODO: this way the panel will not update, it is created only once
             this.dups = new DupManager(project).getDups();
             createContentPanel();
         }
 
-        private void createContentPanel() {
-            contentPanel.setFirstComponent(getLeftPane());
+        private void releaseEditors() {
+            var factory = EditorFactory.getInstance();
+            if (lftEditor != null && !lftEditor.isDisposed()) {
+                factory.releaseEditor(lftEditor);
+            }
+            if (rhtEditor != null && !rhtEditor.isDisposed()) {
+                factory.releaseEditor(rhtEditor);
+            }
+        }
+
+        public JComponent createContentPanel() {
             if (!dups.isEmpty()) {
-                contentPanel.setSecondComponent(getDiff(dups.get(0)));
+                contentPanel.setFirstComponent(getLeftPane());
             }
             contentPanel.setBorder(IdeBorderFactory.createEmptyBorder(JBUI.insetsTop(5)));
             contentPanel.setProportion(0.20f);
+            ProjectManager.getInstance().addProjectManagerListener(project, new ProjectManagerListener() {
+                @Override
+                public void projectClosing(@NotNull Project project) {
+                    releaseEditors();
+                }
+            });
+            return contentPanel;
         }
 
         private JComponent getLeftPane() {
@@ -140,11 +155,13 @@ public class PdupToolWindowFactory implements ToolWindowFactory {
 
         private JComponent getDiff(Dup dup) {
             var factory = EditorFactory.getInstance();
+            releaseEditors();
+
             var lftDoc = factory.createDocument(dup.getFirstCodeSegment());
-            var lftEditor = factory.createEditor(lftDoc, project, dup.firstFile(), true);
+            lftEditor = factory.createEditor(lftDoc, project, dup.firstFile(), true);
 
             var rhtDoc = factory.createDocument(dup.getSecondCodeSegment());
-            var rhtEditor = factory.createEditor(rhtDoc, project, dup.firstFile(), true);
+            rhtEditor = factory.createEditor(rhtDoc, project, dup.secondFile(), true);
             var panel = new OnePixelSplitter();
             panel.setFirstComponent(lftEditor.getComponent());
             panel.setSecondComponent(rhtEditor.getComponent());
@@ -167,7 +184,6 @@ public class PdupToolWindowFactory implements ToolWindowFactory {
             var rhtFile = psiFactory.createFileFromText(JavaFileType.INSTANCE.getLanguage(), dup.getSecondCodeSegment());
             var rhtIds = PsiTreeUtil.collectElementsOfType(rhtFile, PsiIdentifier.class).iterator();
 
-            int i = 0;
             var colorMap = new HashMap<String, Color>();
 
             var lftModel = lftEditor.getMarkupModel();
@@ -175,11 +191,13 @@ public class PdupToolWindowFactory implements ToolWindowFactory {
             while (lftIds.hasNext() && rhtIds.hasNext()) {
                 var li = lftIds.next();
                 var ri = rhtIds.next();
+                if (ri.getText().equals(li.getText())) {
+                    continue;
+                }
                 var color = colorMap.get(li.getText());
                 if (color == null) {
                     color = generateRandomColor(JBColor.WHITE);
                     colorMap.put(li.getText(), color);
-                    i++;
                 }
                 addRangeRect(lftModel, li, color);
                 addRangeRect(rhtModel, ri, color);
@@ -191,18 +209,17 @@ public class PdupToolWindowFactory implements ToolWindowFactory {
             var range = id.getTextRange();
             model.addRangeHighlighter(
                     range.getStartOffset(), range.getEndOffset(), 999,
-                    new TextAttributes(null, null, color, EffectType.SLIGHTLY_WIDER_BOX, Font.BOLD),
+                    new TextAttributes(null, null, color, EffectType.SLIGHTLY_WIDER_BOX, Font.PLAIN),
                     HighlighterTargetArea.EXACT_RANGE
             );
         }
 
-        public Color generateRandomColor(Color mix) {
+        private Color generateRandomColor(Color mix) {
             Random random = new Random();
             int red = random.nextInt(256);
             int green = random.nextInt(256);
             int blue = random.nextInt(256);
 
-            // mix the color
             if (mix != null) {
                 red = (red + mix.getRed()) / 2;
                 green = (green + mix.getGreen()) / 2;

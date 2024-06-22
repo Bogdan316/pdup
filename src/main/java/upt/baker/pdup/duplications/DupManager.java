@@ -2,6 +2,7 @@ package upt.baker.pdup.duplications;
 
 import com.intellij.lang.Language;
 import com.intellij.lang.java.JavaLanguage;
+import com.intellij.openapi.diagnostic.Logger;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.fileEditor.FileDocumentManager;
 import com.intellij.openapi.project.Project;
@@ -13,12 +14,11 @@ import org.jetbrains.annotations.Nullable;
 import upt.baker.pdup.index.PdupFileIndex;
 import upt.baker.pdup.settings.PdupSettingsState;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
+import java.util.concurrent.TimeUnit;
 
 public class DupManager {
+    private static final Logger LOG = Logger.getInstance(DupManager.class);
     private final Project project;
     private final PdupSettingsState state;
     private final FileBasedIndex fileBasedIdx;
@@ -64,13 +64,14 @@ public class DupManager {
                 return d;
             }
         } catch (Exception e) {
-            // TODO: add logging
+            LOG.error(e);
         }
 
         return null;
     }
 
     public List<Dup> getDups() {
+        long start = System.nanoTime();
         var lang = Language.findInstance(JavaLanguage.class);
         if (lang == null) {
             return List.of();
@@ -84,12 +85,8 @@ public class DupManager {
             }
             return true;
         });
+        javaFiles.sort(Comparator.comparing(VirtualFile::getName));
 
-
-        // TODO: make tree clonable, keep the tree from the first file
-        // TODO: this introduces duplicates ?
-        // TODO: add listener to update index
-        // TODO: treat literals the same
 
         var dups = new ArrayList<Dup>();
         int size = javaFiles.size();
@@ -114,12 +111,13 @@ public class DupManager {
                 theTokens.addAll(tokens);
                 theTokens.add(new PdupToken(Integer.MIN_VALUE, -1, -1));
 
-                var t = new Pdup<>(state.tokenLen, theTokens);
+                var t = new Pdup(state.tokenLen, theTokens);
                 var ranges = t.pdup();
                 if (ranges.isEmpty()) {
                     continue;
                 }
                 for (var r : ranges) {
+                    r = r.swap();
                     if (!r.isBefore(tokMid) && !r.isAfter(tokMid)) {
                         var dup = convertDupRange(r, firstFile, secondFile, tokMid, theTokens);
                         if (dup != null) {
@@ -128,45 +126,44 @@ public class DupManager {
                     }
                 }
 
-                System.out.println(dups.size());
+                LOG.info("dups len: " + dups.size());
             }
 
         }
 
         for (int i = 0; i < size; i++) {
             var file = javaFiles.get(i);
-            if(file.toString().contains("SmaliDebugger.java")){
-                System.out.println();
-            }
             var tokens = getTokens(file);
             tokens.add(new PdupToken(Integer.MIN_VALUE, -1, -1));
 
-            var t = new Pdup<>(state.tokenLen, tokens);
+            var t = new Pdup(state.tokenLen, tokens);
             var ranges = t.pdup();
-            if(ranges.isEmpty()){
+            if (ranges.isEmpty()) {
                 continue;
             }
             var it = ranges.iterator();
             var s = it.next();
             while (it.hasNext()) {
                 var d = it.next();
-                if (s.overlaps(d)) {
-                    s = s.add(d);
-                } else {
+                if (!s.overlaps(d)) {
                     var dup = convertDupRange(s, file, file, tokens.size(), tokens);
                     if (dup != null) {
                         dups.add(dup);
                     }
-                    s = d;
                 }
+                s = d;
             }
-            var dup = convertDupRange(s, file, file, tokens.size(), tokens);
-            if (dup != null) {
-                dups.add(dup);
+            try {
+                var dup = convertDupRange(s, file, file, tokens.size(), tokens);
+                if (dup != null) {
+                    dups.add(dup);
+                }
+            } catch (IndexOutOfBoundsException e) {
+                System.out.println(file);
             }
         }
-
-        System.out.println("DONE");
+        long stop = System.nanoTime();
+        LOG.info("all dups found after: " + TimeUnit.NANOSECONDS.toSeconds(stop - start));
         return dups;
     }
 }

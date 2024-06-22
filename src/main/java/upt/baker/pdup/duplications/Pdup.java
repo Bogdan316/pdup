@@ -16,16 +16,16 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 
 
-public class Pdup<T extends PdupToken> {
+public class Pdup {
     public final int[] P;
     public final int[] A;
     public final Node root;
-    private final List<T> params;
+    private final List<PdupToken> params;
     private final int tokenLen;
     // TODO: use in pcombine
     private final PriorityQueue<DupRange> dupRanges = new PriorityQueue<>();
 
-    public Pdup(int tokenLen, List<T> params) {
+    public Pdup(int tokenLen, List<PdupToken> params) {
         this.tokenLen = tokenLen;
         this.params = params;
         P = prev(params);
@@ -35,7 +35,11 @@ public class Pdup<T extends PdupToken> {
         root.setSl(root);
     }
 
-    public int[] prev(List<T> params) {
+    public Node getTree() {
+        return root;
+    }
+
+    public static int[] prev(List<PdupToken> params) {
         var res = new int[params.size()];
         int sz = params.stream().mapToInt(PdupToken::getIdx).max().orElse(-1);
         if (sz < 0) {
@@ -59,7 +63,7 @@ public class Pdup<T extends PdupToken> {
         return res;
     }
 
-    public int[] rev(int[] prev) {
+    public static int[] rev(int[] prev) {
         var rev = new int[prev.length];
         for (int i = 0; i < prev.length; i++) {
             if (prev[i] < 0) {
@@ -76,7 +80,7 @@ public class Pdup<T extends PdupToken> {
         return rev;
     }
 
-    public int f(int b, int j) {
+    public static int f(int b, int j) {
         if (b <= j) {
             return b;
         } else {
@@ -97,8 +101,6 @@ public class Pdup<T extends PdupToken> {
         if (s == 0) {
             return start;
         }
-        // TODO: bug(1) this needs to be checked if it is correct in phase 2
-        //   this fixes issues for ConvertToClsSet.java and ConvertArscFile.java, starting path is already parcurs ...
         if (start.getPathLen() >= s) {
             return start;
         }
@@ -116,7 +118,6 @@ public class Pdup<T extends PdupToken> {
 
 
     public void update(int i, Node g, Node newhd, Node oldchild) {
-        // TODO: pos for bug 2, not sure if need to put 1 back, seems no
         if (g.getMin() == null || g.getMin().getPathLen() > 1 + newhd.getPathLen()) {
             newhd.setMin(null);
         } else {
@@ -189,19 +190,13 @@ public class Pdup<T extends PdupToken> {
         return scan(g, i, j, splitPoint);
     }
 
-    private void build() {
+    public void build() {
         var oldhd = root;
         Node oldchild = null;
         Node newhd;
         Node g;
 
         for (int i = 0; i < P.length; i++) {
-//            var s = "Suffix " + i + " --> ";
-//            for (int j = i; j < P.length; j++) {
-//                var p = params.get(j).toString();
-//                s += p;
-//            }
-//            System.out.println(s);
             // phase 1
             if (oldhd.getSl() == null) {
                 // only the root does not have a parent, but the root always has a sl
@@ -240,8 +235,6 @@ public class Pdup<T extends PdupToken> {
 
                 newhd.insertChild(g);
 
-                // TODO: bug 2, i == 999 (sl for oldhead is not the smallest caused by the fact that that sl's min is not the smallest)
-                //  -> paper suggests this should happen only after a split:
                 update(i, g, newhd, oldchild);
                 // oldhd.sl is updated in the beginning of the loop
                 if (newhd.getPathLen() < oldhd.getSl().getPathLen()) {
@@ -263,17 +256,6 @@ public class Pdup<T extends PdupToken> {
             leaf.setPathLen(P.length - i);
             leaf.setArcLen(leaf.getPathLen() - newhd.getPathLen());
             newhd.insertChild(leaf);
-//            var tmp = "Result " + i + " --> " + leaf.toString().split("~FULL_PATH~: ")[1];
-//            System.out.println(tmp);
-//            var p1 = tmp.split(" --> ")[1].split("\\|");
-//            var p2 = s.split(" --> ")[1].split("\\|");
-////             TODO: naive check, do the real one
-//            for (int l = 0; l < p1.length; l++) {
-//                if (!p1[l].equals(p2[l])) {
-//                    throw new IllegalStateException("Not matching for suffix: " + i + " at pos: " + l);
-//                }
-//            }
-
 
             // phase 6
             oldhd = newhd;
@@ -427,6 +409,16 @@ public class Pdup<T extends PdupToken> {
             }
 
             return "r";
+        }
+
+        public List<Integer> getPsub() {
+            var psub = new ArrayList<Integer>();
+            int j = pathLen - arcLen;
+            for (int i = firstPos; i < firstPos + arcLen; i++) {
+                psub.add(f(P[i], j++));
+            }
+
+            return psub;
         }
 
         @Override
