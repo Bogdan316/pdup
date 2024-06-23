@@ -8,3 +8,6 @@ pași compilare:
 pași instalare:
 - se navighează din setările IDE-ului IntelliJ IDEA la secțiunea de Plugins
 - se alege instalare de pe disc și se selectează arhiva obținută la compilare
+
+pași rulare:
+- din top bar-ul IDE-ului se selectează secțiunea Tools apoi Pdup
